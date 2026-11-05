@@ -186,6 +186,7 @@ fun RadarScreen(
 
             // Market Stats Header Row
             val verifiedSecurityCount = tokens.count { it.rugAnalysis.isVerified }
+            val solPriceLabel = if (solPriceUsd > 0.0) "USD " + String.format("%.2f", solPriceUsd) else "—"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -206,7 +207,7 @@ fun RadarScreen(
                 )
                 StatPill(
                     label = "SOL Price",
-                    value = if (solPriceUsd > 0.0) "USD ${String.format("%.2f", solPriceUsd)}" else "—",
+                    value = solPriceLabel,
                     color = NeonGreen,
                     modifier = Modifier.weight(1f)
                 )
