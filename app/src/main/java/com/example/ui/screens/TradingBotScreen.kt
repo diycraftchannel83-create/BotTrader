@@ -435,6 +435,8 @@ private fun BotConfigDialog(
     var autoBuy by remember { mutableStateOf(currentConfig.autoBuyEnabled) }
     var autoSell by remember { mutableStateOf(currentConfig.autoSellEnabled) }
     var allowUnverified by remember { mutableStateOf(currentConfig.allowUnverifiedSecurityData) }
+    var antiMevEnabled by remember { mutableStateOf(currentConfig.antiMevProtectionEnabled) }
+    var maxSlippageText by remember { mutableStateOf(currentConfig.maxSlippagePct.toString()) }
     var buyAmountText by remember { mutableStateOf(currentConfig.buyAmountSol.toString()) }
     var minScoreText by remember { mutableStateOf(currentConfig.minCandidateScore.toString()) }
     var liquidityWeightText by remember { mutableStateOf(currentConfig.scoreLiquidityWeight.toString()) }
@@ -469,6 +471,14 @@ private fun BotConfigDialog(
                     }
                     Switch(checked = autoSell, onCheckedChange = { autoSell = it })
                 }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("Anti-MEV Guardrails", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Enable conservative pre-trade limits. Paper mode does not route privately or stop on-chain MEV.", color = TextMuted, fontSize = 10.sp)
+                    }
+                    Switch(checked = antiMevEnabled, onCheckedChange = { antiMevEnabled = it })
+                }
+                OutlinedTextField(value = maxSlippageText, onValueChange = { maxSlippageText = it }, label = { Text("Max slippage limit (%) — default 1.0") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("Allow unverified security data", color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -539,6 +549,8 @@ private fun BotConfigDialog(
                         autoBuyEnabled = autoBuy,
                         autoSellEnabled = autoSell,
                         allowUnverifiedSecurityData = allowUnverified,
+                        antiMevProtectionEnabled = antiMevEnabled,
+                        maxSlippagePct = maxSlippageText.toDoubleOrNull()?.takeIf { it in 0.1..100.0 } ?: currentConfig.maxSlippagePct,
                         buyAmountSol = buyAmountText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.buyAmountSol,
                         minCandidateScore = minScoreText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.minCandidateScore,
                         scoreLiquidityWeight = liquidityWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreLiquidityWeight,
