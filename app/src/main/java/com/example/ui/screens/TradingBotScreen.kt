@@ -438,10 +438,6 @@ private fun BotConfigDialog(
     var maxPositionsText by remember { mutableStateOf(currentConfig.maxOpenPositions.toString()) }
     var dailyLossText by remember { mutableStateOf(currentConfig.maxDailyLossSol.toString()) }
     var trailingStopText by remember { mutableStateOf(currentConfig.trailingStopPctAuto.toString()) }
-    var minRugScore by remember { mutableStateOf(currentConfig.minRugScoreForSnipe.toFloat()) }
-    var maxDevHolding by remember { mutableStateOf(currentConfig.maxDevHoldingForSnipe.toFloat()) }
-    var requireDexPaid by remember { mutableStateOf(currentConfig.requireDexPaidForSnipe) }
-    var snipeAmountText by remember { mutableStateOf(currentConfig.snipeAmountSol.toString()) }
     var takeProfitText by remember { mutableStateOf(currentConfig.defaultTakeProfitPct.toString()) }
     var stopLossText by remember { mutableStateOf(currentConfig.defaultStopLossPct.toString()) }
 
@@ -472,34 +468,6 @@ private fun BotConfigDialog(
                     Switch(checked = allowUnverified, onCheckedChange = { allowUnverified = it })
                 }
 
-
-                // Min Rug Safety Score Slider
-                Column {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Min Rug Safety Score", color = TextMuted, fontSize = 11.sp)
-                        Text("${minRugScore.toInt()}/100", color = NeonGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Slider(
-                        value = minRugScore,
-                        onValueChange = { minRugScore = it },
-                        valueRange = 50f..95f,
-                        steps = 8
-                    )
-                }
-
-                // Max Dev Holding Slider
-                Column {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Max Allowed Dev Supply %", color = TextMuted, fontSize = 11.sp)
-                        Text("${String.format("%.1f", maxDevHolding)}%", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Slider(
-                        value = maxDevHolding,
-                        onValueChange = { maxDevHolding = it },
-                        valueRange = 1f..15f,
-                        steps = 14
-                    )
-                }
 
                 OutlinedTextField(value = buyAmountText, onValueChange = { buyAmountText = it }, label = { Text("Buy amount per token (SOL) — default 0.01") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -544,10 +512,8 @@ private fun BotConfigDialog(
                         maxOpenPositions = maxPositionsText.toIntOrNull()?.coerceIn(1, 20) ?: currentConfig.maxOpenPositions,
                         maxDailyLossSol = dailyLossText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.maxDailyLossSol,
                         trailingStopPctAuto = trailingStopText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.trailingStopPctAuto,
-                        minRugScoreForSnipe = minRugScore.toInt(),
-                        maxDevHoldingForSnipe = maxDevHolding.toDouble(),
-                        defaultTakeProfitPct = takeProfitText.toDoubleOrNull() ?: currentConfig.defaultTakeProfitPct,
-                        defaultStopLossPct = stopLossText.toDoubleOrNull() ?: currentConfig.defaultStopLossPct
+                        takeProfitPct = takeProfitText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.takeProfitPct,
+                        stopLossPct = stopLossText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.stopLossPct
                     )
                     onSave(updated)
                 },
