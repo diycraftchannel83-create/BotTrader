@@ -138,10 +138,6 @@ class PumpFunRepository(
         val realizedToday = _transactions.value
             .filter { it.type == "SELL" && it.timestamp >= dayStart }
             .sumOf { it.realizedPnlSol ?: 0.0 }
-        if (realizedToday <= -config.maxDailyLossSol) {
-            _autoTradeStatus.value = "Daily loss limit reached; new buys blocked"
-            return
-        }
 
         if (!config.isMasterEnabled) {
             _autoTradeStatus.value = "Paper engine paused"
@@ -180,6 +176,10 @@ class PumpFunRepository(
             }
         }
 
+        if (realizedToday <= -config.maxDailyLossSol) {
+            _autoTradeStatus.value = "Daily loss limit reached; new buys blocked"
+            return
+        }
         if (!config.autoBuyEnabled) {
             _autoTradeStatus.value = "Auto-buy disabled; scanning ${assessments.size} candidates"
             return
