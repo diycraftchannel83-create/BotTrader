@@ -431,6 +431,7 @@ private fun BotConfigDialog(
     onDismiss: () -> Unit,
     onSave: (BotStrategyConfig) -> Unit
 ) {
+    val context = LocalContext.current
     var autoBuy by remember { mutableStateOf(currentConfig.autoBuyEnabled) }
     var autoSell by remember { mutableStateOf(currentConfig.autoSellEnabled) }
     var allowUnverified by remember { mutableStateOf(currentConfig.allowUnverifiedSecurityData) }
