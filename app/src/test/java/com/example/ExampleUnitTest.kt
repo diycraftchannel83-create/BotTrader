@@ -7,6 +7,35 @@ import org.junit.Test
 
 class ExampleUnitTest {
     @Test
+    fun candidateScoreUsesEditableRelativeWeightsAndStaysWithinRange() {
+        val token = PumpToken(
+            id = "MintScoringTest", name = "Scoring Test", symbol = "SCORE",
+            description = "", avatarEmoji = "🪙", avatarBgColor = 0L,
+            createdAt = System.currentTimeMillis() - 60_000L,
+            priceUsd = 0.01, priceSol = 0.0001, change1m = 0.0,
+            change5m = 10.0, change1h = 20.0, marketCapUsd = 100_000.0,
+            volume24hUsd = 100_000.0, bondingCurveProgress = 0f, holderCount = 0,
+            telegramUrl = "", twitterUrl = "", websiteUrl = "",
+            dexPaidStatus = DexPaidStatus.PENDING, dexPaidTime = null,
+            rugAnalysis = RugAnalysis(0.0, 0.0, false, false, false, false, 0, emptyList()),
+            candles = emptyList(), stage = TokenLaunchStage.DEX_LISTED,
+            bondingCurveKnown = false, liquidityUsd = 100_000.0
+        )
+        val liquidityOnly = BotStrategyConfig(
+            scoreLiquidityWeight = 100, scoreVolumeWeight = 0, scoreMomentumWeight = 0,
+            scoreAgeWeight = 0, scoreMarketCapWeight = 0, scoreTrendWeight = 0
+        )
+        val trendOnly = liquidityOnly.copy(scoreLiquidityWeight = 0, scoreTrendWeight = 100)
+
+        val liquidityScore = com.example.data.repository.SmartTradingStrategy.assess(token, liquidityOnly).score
+        val trendScore = com.example.data.repository.SmartTradingStrategy.assess(token, trendOnly).score
+
+        assertTrue(liquidityScore in 0..100)
+        assertTrue(trendScore in 0..100)
+        assertNotEquals(liquidityScore, trendScore)
+    }
+
+    @Test
     fun tokenPriceFormatterKeepsTenDecimalPlacesForTinyPrices() {
         assertEquals("0.0000000123", TokenPriceFormatter.format(0.0000000123))
         assertEquals("1.2345678901", TokenPriceFormatter.format(1.2345678901))
