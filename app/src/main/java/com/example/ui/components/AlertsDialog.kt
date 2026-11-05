@@ -81,6 +81,8 @@ fun AlertsDialog(
                                 AlertType.GRADUATION -> NeonCyan
                                 AlertType.RUG_WARNING -> DangerRed
                                 AlertType.BOT_TRIGGER -> NeonPurple
+                                AlertType.WITHDRAWAL -> NeonCyan
+                                AlertType.WALLET_EVENT -> NeonGreen
                             }
 
                             val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())

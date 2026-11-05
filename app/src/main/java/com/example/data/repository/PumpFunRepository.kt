@@ -22,6 +22,15 @@ class PumpFunRepository(
     private val _walletSolBalance = MutableStateFlow(5.0)
     val walletSolBalance: StateFlow<Double> = _walletSolBalance.asStateFlow()
 
+    private val _currentWallet = MutableStateFlow(
+        SolanaWallet(
+            address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+            label = "Sniper Keypair (Default)",
+            isImported = false
+        )
+    )
+    val currentWallet: StateFlow<SolanaWallet> = _currentWallet.asStateFlow()
+
     private val _holdings = MutableStateFlow<List<PortfolioHolding>>(emptyList())
     val holdings: StateFlow<List<PortfolioHolding>> = _holdings.asStateFlow()
 
@@ -757,5 +766,108 @@ class PumpFunRepository(
                 _recentNotification.value = snipeAlert
             }
         }
+    }
+
+    fun importPrivateKey(rawKey: String, customLabel: String = "Imported Phantom"): Result<SolanaWallet> {
+        val trimmed = rawKey.trim()
+        if (!com.example.util.SolanaKeyUtils.isValidPrivateKey(trimmed)) {
+            return Result.failure(IllegalArgumentException("Invalid Solana private key. Expected valid Base58 private key or JSON byte array."))
+        }
+
+        val derivedAddress = com.example.util.SolanaKeyUtils.deriveSolanaAddress(trimmed)
+        val masked = com.example.util.SolanaKeyUtils.maskPrivateKey(trimmed)
+        val wallet = SolanaWallet(
+            address = derivedAddress,
+            label = customLabel.ifBlank { "Imported Wallet" },
+            isImported = true,
+            importedAt = System.currentTimeMillis(),
+            maskedKey = masked
+        )
+        _currentWallet.value = wallet
+
+        val alert = PriceAlert(
+            id = UUID.randomUUID().toString(),
+            tokenId = "",
+            tokenSymbol = "SOL",
+            title = "🔐 Solana Wallet Imported",
+            message = "Connected to ${wallet.shortAddress} (${wallet.label})",
+            timestamp = System.currentTimeMillis(),
+            type = AlertType.WALLET_EVENT
+        )
+        _alerts.value = listOf(alert) + _alerts.value
+        _recentNotification.value = alert
+        return Result.success(wallet)
+    }
+
+    fun disconnectWallet() {
+        val defaultWallet = SolanaWallet(
+            address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+            label = "Sniper Keypair (Default)",
+            isImported = false
+        )
+        _currentWallet.value = defaultWallet
+        val alert = PriceAlert(
+            id = UUID.randomUUID().toString(),
+            tokenId = "",
+            tokenSymbol = "SOL",
+            title = "🔌 Wallet Disconnected",
+            message = "Reverted to default generated trading wallet.",
+            timestamp = System.currentTimeMillis(),
+            type = AlertType.WALLET_EVENT
+        )
+        _alerts.value = listOf(alert) + _alerts.value
+        _recentNotification.value = alert
+    }
+
+    fun withdrawSol(recipientAddress: String, amountSol: Double): Result<TradeTransaction> {
+        val trimmedAddr = recipientAddress.trim()
+        if (!com.example.util.SolanaKeyUtils.isValidSolanaAddress(trimmedAddr)) {
+            return Result.failure(IllegalArgumentException("Invalid Solana destination address. Expected 32-44 Base58 characters."))
+        }
+        if (trimmedAddr == _currentWallet.value.address) {
+            return Result.failure(IllegalArgumentException("Destination cannot be your current sending address."))
+        }
+        if (amountSol <= 0.0) {
+            return Result.failure(IllegalArgumentException("Withdrawal amount must be greater than 0 SOL."))
+        }
+
+        val networkFee = 0.000005 // Solana cluster network fee
+        val totalNeeded = amountSol + networkFee
+        if (_walletSolBalance.value < totalNeeded) {
+            return Result.failure(IllegalArgumentException("Insufficient SOL balance. Available: ${String.format("%.4f", _walletSolBalance.value)} SOL, Needed: ${String.format("%.4f", totalNeeded)} SOL (including fee)"))
+        }
+
+        _walletSolBalance.value -= totalNeeded
+        val txSig = com.example.util.SolanaKeyUtils.generateTxSignature()
+        val tx = TradeTransaction(
+            id = UUID.randomUUID().toString(),
+            tokenId = "SOL",
+            tokenSymbol = "SOL",
+            type = "WITHDRAW",
+            amountSol = amountSol,
+            amountTokens = amountSol,
+            priceSol = 1.0,
+            realizedPnlSol = null,
+            timestamp = System.currentTimeMillis(),
+            txHash = txSig,
+            isAutoBot = false,
+            recipientAddress = trimmedAddr
+        )
+
+        _transactions.value = listOf(tx) + _transactions.value
+
+        val alert = PriceAlert(
+            id = UUID.randomUUID().toString(),
+            tokenId = "",
+            tokenSymbol = "SOL",
+            title = "💸 SOL Withdrawal Confirmed",
+            message = "Sent ${String.format("%.4f", amountSol)} SOL to ${trimmedAddr.take(4)}...${trimmedAddr.takeLast(4)}",
+            timestamp = System.currentTimeMillis(),
+            type = AlertType.WITHDRAWAL
+        )
+        _alerts.value = listOf(alert) + _alerts.value
+        _recentNotification.value = alert
+
+        return Result.success(tx)
     }
 }

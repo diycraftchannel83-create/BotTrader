@@ -136,7 +136,8 @@ fun PumpPulseApp(
                             tokens = filteredTokens,
                             onSelectToken = { token -> viewModel.selectToken(token.id) },
                             onQuickBuy = { token -> tradeToken = token },
-                            onOpenAlerts = { showAlertsDialog = true }
+                            onOpenAlerts = { showAlertsDialog = true },
+                            onOpenWallet = { currentTab = NavigationTab.PORTFOLIO }
                         )
                     }
                     NavigationTab.BOT -> {

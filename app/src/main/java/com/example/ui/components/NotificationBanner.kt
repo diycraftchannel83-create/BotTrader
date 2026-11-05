@@ -43,6 +43,8 @@ fun NotificationBanner(
                 AlertType.GRADUATION -> NeonCyan
                 AlertType.RUG_WARNING -> DangerRed
                 AlertType.BOT_TRIGGER -> NeonPurple
+                AlertType.WITHDRAWAL -> NeonCyan
+                AlertType.WALLET_EVENT -> NeonGreen
             }
 
             Box(

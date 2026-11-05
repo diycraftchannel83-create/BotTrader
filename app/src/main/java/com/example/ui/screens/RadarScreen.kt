@@ -37,6 +37,7 @@ fun RadarScreen(
     onSelectToken: (PumpToken) -> Unit,
     onQuickBuy: (PumpToken) -> Unit,
     onOpenAlerts: () -> Unit,
+    onOpenWallet: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -44,6 +45,8 @@ fun RadarScreen(
     val activeSort by viewModel.activeSort.collectAsState()
     val alerts by viewModel.alerts.collectAsState()
     val botConfig by viewModel.botConfig.collectAsState()
+    val currentWallet by viewModel.currentWallet.collectAsState()
+    val walletSol by viewModel.walletSolBalance.collectAsState()
 
     // Pulsing live indicator
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -107,6 +110,34 @@ fun RadarScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // Wallet Chip (Clickable to open Portfolio / Withdraw / Import)
+                    Box(
+                        modifier = Modifier
+                            .background(if (currentWallet.isImported) NeonGreen.copy(alpha = 0.15f) else CardHighlight, RoundedCornerShape(8.dp))
+                            .border(1.dp, if (currentWallet.isImported) NeonGreen else CardBorder, RoundedCornerShape(8.dp))
+                            .clickable { onOpenWallet() }
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                            .testTag("radar_wallet_chip")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (currentWallet.isImported) Icons.Default.VpnKey else Icons.Default.AccountBalanceWallet,
+                                contentDescription = "Wallet",
+                                tint = if (currentWallet.isImported) NeonGreen else NeonCyan,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = "${String.format("%.2f", walletSol)} SOL",
+                                color = TextPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     // Bot indicator status
                     Box(
                         modifier = Modifier

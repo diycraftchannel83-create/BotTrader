@@ -76,4 +76,56 @@ class ExampleUnitTest {
         val shouldTrigger = currentPrice <= buyLimitOrder.targetPriceSol
         assertTrue("Buy limit order should trigger when price drops to or below target", shouldTrigger)
     }
+
+    @Test
+    fun testSolanaAddressValidation() {
+        val validSolanaAddr = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+        assertTrue(com.example.util.SolanaKeyUtils.isValidSolanaAddress(validSolanaAddr))
+
+        val invalidAddr = "0x12345" // Ethereum address
+        assertFalse(com.example.util.SolanaKeyUtils.isValidSolanaAddress(invalidAddr))
+
+        val invalidChars = "0OIl_invalid_solana_address"
+        assertFalse(com.example.util.SolanaKeyUtils.isValidSolanaAddress(invalidChars))
+    }
+
+    @Test
+    fun testSolanaPrivateKeyValidationAndDerivation() {
+        // Sample Base58 key
+        val sampleKey = "5MaiiCavjCmn9Hs1o3eznqDE2BEWQ52jA6hac2MDB98DzpHzPQGybJBcZcaqPMNzoyG2g"
+        assertTrue(com.example.util.SolanaKeyUtils.isValidPrivateKey(sampleKey))
+
+        val derivedAddress = com.example.util.SolanaKeyUtils.deriveSolanaAddress(sampleKey)
+        assertEquals(44, derivedAddress.length)
+        assertTrue(com.example.util.SolanaKeyUtils.isValidSolanaAddress(derivedAddress))
+
+        // Sample Byte Array key
+        val byteArrKey = "[142, 23, 51, 88, 99, 12, 45, 67, 89, 120, 200, 250, 11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 222, 133, 144, 155, 166, 177, 188, 199, 210, 230]"
+        assertTrue(com.example.util.SolanaKeyUtils.isValidPrivateKey(byteArrKey))
+    }
+
+    @Test
+    fun testWithdrawalExecutionInRepository() {
+        val repo = com.example.data.repository.PumpFunRepository()
+        val initialBalance = repo.walletSolBalance.value
+
+        val destination = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+        val withdrawAmt = 1.5
+
+        val result = repo.withdrawSol(destination, withdrawAmt)
+        assertTrue(result.isSuccess)
+        val tx = result.getOrNull()
+        assertNotNull(tx)
+        assertEquals("WITHDRAW", tx?.type)
+        assertEquals(withdrawAmt, tx?.amountSol ?: 0.0, 0.0001)
+        assertEquals(destination, tx?.recipientAddress)
+
+        // Balance should decrease by 1.5 + fee (0.000005)
+        val expectedBalance = initialBalance - (withdrawAmt + 0.000005)
+        assertEquals(expectedBalance, repo.walletSolBalance.value, 0.0001)
+
+        // Attempting to withdraw more than available balance should fail
+        val excessiveResult = repo.withdrawSol(destination, 999.0)
+        assertTrue(excessiveResult.isFailure)
+    }
 }

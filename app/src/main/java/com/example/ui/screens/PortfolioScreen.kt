@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,6 +28,8 @@ import com.example.data.model.PumpToken
 import com.example.data.model.TradeTransaction
 import com.example.ui.MainViewModel
 import com.example.ui.PortfolioSummary
+import com.example.ui.components.ImportWalletDialog
+import com.example.ui.components.WithdrawDialog
 import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -41,7 +46,12 @@ fun PortfolioScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val currentWallet by viewModel.currentWallet.collectAsState()
+    val walletSol by viewModel.walletSolBalance.collectAsState()
+
     var selectedTab by remember { mutableStateOf(0) } // 0: Holdings, 1: Trade History
+    var showImportDialog by remember { mutableStateOf(false) }
+    var showWithdrawDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -84,13 +94,157 @@ fun PortfolioScreen(
                             Toast.makeText(context, "Wallet reset to 5.0 SOL", Toast.LENGTH_SHORT).show()
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCyan),
-                        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(NeonCyan)),
+                        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         modifier = Modifier.height(30.dp)
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Reset Wallet", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("Reset", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Solana Wallet Management Card (Import & Withdraw)
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("solana_wallet_card"),
+                    colors = CardDefaults.cardColors(containerColor = DarkNavy),
+                    shape = RoundedCornerShape(16.dp),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(
+                            if (currentWallet.isImported) NeonGreen.copy(alpha = 0.5f) else CardBorder
+                        )
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(
+                                            if (currentWallet.isImported) NeonGreen.copy(alpha = 0.15f) else CardHighlight,
+                                            RoundedCornerShape(8.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (currentWallet.isImported) Icons.Default.VpnKey else Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = if (currentWallet.isImported) NeonGreen else NeonCyan,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(currentWallet.label, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    if (currentWallet.isImported) NeonGreen.copy(alpha = 0.15f) else CardHighlight,
+                                                    RoundedCornerShape(4.dp)
+                                                )
+                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = if (currentWallet.isImported) "IMPORTED" else "LOCAL",
+                                                color = if (currentWallet.isImported) NeonGreen else TextMuted,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                        }
+                                    }
+                                    // Clickable short address to copy
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.clickable {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            val clip = ClipData.newPlainText("Solana Address", currentWallet.address)
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, "Wallet address copied!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    ) {
+                                        Text(currentWallet.shortAddress, color = TextMuted, fontSize = 11.sp)
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextMuted, modifier = Modifier.size(11.dp))
+                                    }
+                                }
+                            }
+
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Available", color = TextMuted, fontSize = 10.sp)
+                                Text(
+                                    text = "${String.format("%.4f", walletSol)} SOL",
+                                    color = NeonGreen,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Action Buttons: Import Key & Withdraw Function Button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Import Wallet Button
+                            OutlinedButton(
+                                onClick = { showImportDialog = true },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .testTag("import_wallet_button"),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (currentWallet.isImported) NeonGreen else TextPrimary
+                                ),
+                                border = CardDefaults.outlinedCardBorder().copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(
+                                        if (currentWallet.isImported) NeonGreen else CardBorder
+                                    )
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            ) {
+                                Icon(Icons.Default.VpnKey, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (currentWallet.isImported) "Change Key" else "Import Key",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // Withdraw Function Button
+                            Button(
+                                onClick = { showWithdrawDialog = true },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .testTag("withdraw_sol_button"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NeonCyan,
+                                    contentColor = CyberBlack
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            ) {
+                                Icon(Icons.Default.ArrowOutward, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Withdraw", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                            }
+                        }
                     }
                 }
             }
@@ -187,7 +341,7 @@ fun PortfolioScreen(
                     ) { selectedTab = 0 }
 
                     TabButton(
-                        title = "Trade History (${transactions.size})",
+                        title = "Activity & Transfers (${transactions.size})",
                         isSelected = selectedTab == 1,
                         modifier = Modifier.weight(1f)
                     ) { selectedTab = 1 }
@@ -319,7 +473,7 @@ fun PortfolioScreen(
                     }
                 }
             } else {
-                // Trade History
+                // Trade & Transfer History
                 if (transactions.isEmpty()) {
                     item {
                         Box(
@@ -329,14 +483,21 @@ fun PortfolioScreen(
                                 .padding(28.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("No trade transactions executed yet", color = TextMuted, fontSize = 13.sp)
+                            Text("No trades or transfers executed yet", color = TextMuted, fontSize = 13.sp)
                         }
                     }
                 } else {
                     items(transactions, key = { it.id }) { tx ->
                         val isBuy = tx.type == "BUY"
+                        val isWithdraw = tx.type == "WITHDRAW"
                         val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                         val timeStr = dateFormat.format(Date(tx.timestamp))
+
+                        val badgeColor = when {
+                            isWithdraw -> NeonCyan
+                            isBuy -> NeonGreen
+                            else -> DangerRed
+                        }
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -357,15 +518,12 @@ fun PortfolioScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .background(
-                                                if (isBuy) NeonGreen.copy(alpha = 0.15f) else DangerRed.copy(alpha = 0.15f),
-                                                RoundedCornerShape(6.dp)
-                                            )
+                                            .background(badgeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
                                             .padding(horizontal = 6.dp, vertical = 3.dp)
                                     ) {
                                         Text(
                                             text = tx.type,
-                                            color = if (isBuy) NeonGreen else DangerRed,
+                                            color = badgeColor,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.ExtraBold
                                         )
@@ -377,14 +535,26 @@ fun PortfolioScreen(
                                                 Text("🤖 Bot", color = NeonPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
-                                        Text(timeStr, color = TextMuted, fontSize = 10.sp)
+                                        if (isWithdraw && tx.recipientAddress != null) {
+                                            val shortRec = if (tx.recipientAddress.length > 8)
+                                                "${tx.recipientAddress.take(4)}...${tx.recipientAddress.takeLast(4)}"
+                                            else tx.recipientAddress
+                                            Text("To: $shortRec • $timeStr", color = TextMuted, fontSize = 10.sp)
+                                        } else {
+                                            Text(timeStr, color = TextMuted, fontSize = 10.sp)
+                                        }
                                     }
                                 }
 
                                 Column(horizontalAlignment = Alignment.End) {
+                                    val amountPrefix = when {
+                                        isWithdraw -> "-"
+                                        isBuy -> "-"
+                                        else -> "+"
+                                    }
                                     Text(
-                                        text = "${if (isBuy) "-" else "+"}${String.format("%.4f", tx.amountSol)} SOL",
-                                        color = if (isBuy) TextPrimary else NeonGreen,
+                                        text = "$amountPrefix${String.format("%.4f", tx.amountSol)} SOL",
+                                        color = if (isWithdraw) NeonCyan else if (isBuy) TextPrimary else NeonGreen,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -409,6 +579,32 @@ fun PortfolioScreen(
                 Spacer(modifier = Modifier.height(60.dp))
             }
         }
+    }
+
+    // Import Wallet Dialog
+    if (showImportDialog) {
+        ImportWalletDialog(
+            currentWallet = currentWallet,
+            onDismiss = { showImportDialog = false },
+            onImport = { key, label ->
+                viewModel.importPrivateKey(key, label)
+            },
+            onDisconnect = {
+                viewModel.disconnectWallet()
+            }
+        )
+    }
+
+    // Withdraw Dialog
+    if (showWithdrawDialog) {
+        WithdrawDialog(
+            currentWallet = currentWallet,
+            availableSol = walletSol,
+            onDismiss = { showWithdrawDialog = false },
+            onWithdraw = { recipient, amount ->
+                viewModel.withdrawSol(recipient, amount)
+            }
+        )
     }
 }
 

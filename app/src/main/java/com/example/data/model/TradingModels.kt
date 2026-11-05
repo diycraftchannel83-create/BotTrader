@@ -45,18 +45,30 @@ data class PortfolioHolding(
         if (totalInvestedSol > 0) ((currentValSol(currentPriceSol) - totalInvestedSol) / totalInvestedSol) * 100.0 else 0.0
 }
 
+data class SolanaWallet(
+    val address: String,
+    val label: String,
+    val isImported: Boolean,
+    val importedAt: Long? = null,
+    val maskedKey: String? = null
+) {
+    val shortAddress: String
+        get() = if (address.length > 8) "${address.take(4)}...${address.takeLast(4)}" else address
+}
+
 data class TradeTransaction(
     val id: String,
     val tokenId: String,
     val tokenSymbol: String,
-    val type: String, // "BUY" or "SELL"
+    val type: String, // "BUY", "SELL", "WITHDRAW"
     val amountSol: Double,
     val amountTokens: Double,
     val priceSol: Double,
     val realizedPnlSol: Double?,
     val timestamp: Long,
     val txHash: String,
-    val isAutoBot: Boolean
+    val isAutoBot: Boolean,
+    val recipientAddress: String? = null
 )
 
 enum class AlertType {
@@ -65,7 +77,9 @@ enum class AlertType {
     DEX_PAID,
     GRADUATION,
     RUG_WARNING,
-    BOT_TRIGGER
+    BOT_TRIGGER,
+    WITHDRAWAL,
+    WALLET_EVENT
 }
 
 data class PriceAlert(

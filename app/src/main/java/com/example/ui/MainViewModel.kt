@@ -54,6 +54,7 @@ class MainViewModel(
 
     val tokens: StateFlow<List<PumpToken>> = repository.tokens
     val walletSolBalance: StateFlow<Double> = repository.walletSolBalance
+    val currentWallet: StateFlow<SolanaWallet> = repository.currentWallet
     val holdings: StateFlow<List<PortfolioHolding>> = repository.holdings
     val limitOrders: StateFlow<List<LimitOrder>> = repository.limitOrders
     val transactions: StateFlow<List<TradeTransaction>> = repository.transactions
@@ -201,5 +202,17 @@ class MainViewModel(
 
     fun resetWallet() {
         repository.resetWalletBalance(5.0)
+    }
+
+    fun importPrivateKey(rawKey: String, customLabel: String): Result<SolanaWallet> {
+        return repository.importPrivateKey(rawKey, customLabel)
+    }
+
+    fun disconnectWallet() {
+        repository.disconnectWallet()
+    }
+
+    fun withdrawSol(recipientAddress: String, amountSol: Double): Result<TradeTransaction> {
+        return repository.withdrawSol(recipientAddress, amountSol)
     }
 }
