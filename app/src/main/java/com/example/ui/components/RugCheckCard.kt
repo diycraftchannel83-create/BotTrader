@@ -36,18 +36,21 @@ fun RugCheckCard(
         RiskLevel.SAFE -> SafeGreen
         RiskLevel.MODERATE -> WarningAmber
         RiskLevel.HIGH_RISK -> DangerRed
+        RiskLevel.UNKNOWN -> WarningAmber
     }
 
     val badgeBg = when (riskLevel) {
         RiskLevel.SAFE -> SafeGreen.copy(alpha = 0.15f)
         RiskLevel.MODERATE -> WarningAmber.copy(alpha = 0.15f)
         RiskLevel.HIGH_RISK -> DangerRedBg
+        RiskLevel.UNKNOWN -> WarningAmber.copy(alpha = 0.15f)
     }
 
     val riskTitle = when (riskLevel) {
         RiskLevel.SAFE -> "Low Risk (Safe to Trade)"
         RiskLevel.MODERATE -> "Moderate Risk"
         RiskLevel.HIGH_RISK -> "HIGH RISK / DANGER"
+        RiskLevel.UNKNOWN -> "NOT VERIFIED"
     }
 
     Card(
@@ -110,7 +113,7 @@ fun RugCheckCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "$score",
+                            text = if (rugAnalysis.isVerified) "$score" else "N/A",
                             color = badgeColor,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold
@@ -132,14 +135,14 @@ fun RugCheckCard(
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "Mint Authority",
-                        statusText = if (rugAnalysis.isMintRenounced) "Renounced" else "Active (Danger)",
-                        isGood = rugAnalysis.isMintRenounced
+                        statusText = if (!rugAnalysis.isVerified) "Not verified" else if (rugAnalysis.isMintRenounced) "Renounced" else "Active (Danger)",
+                        isGood = rugAnalysis.isVerified && rugAnalysis.isMintRenounced
                     )
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "Freeze Authority",
-                        statusText = if (rugAnalysis.isFreezeDisabled) "Disabled" else "Active (Danger)",
-                        isGood = rugAnalysis.isFreezeDisabled
+                        statusText = if (!rugAnalysis.isVerified) "Not verified" else if (rugAnalysis.isFreezeDisabled) "Disabled" else "Active (Danger)",
+                        isGood = rugAnalysis.isVerified && rugAnalysis.isFreezeDisabled
                     )
                 }
 
@@ -147,14 +150,14 @@ fun RugCheckCard(
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "LP Status",
-                        statusText = if (rugAnalysis.isLpBurned) "Burned/Locked" else "Unlocked",
-                        isGood = rugAnalysis.isLpBurned
+                        statusText = if (!rugAnalysis.isVerified) "Not verified" else if (rugAnalysis.isLpBurned) "Burned/Locked" else "Unlocked",
+                        isGood = rugAnalysis.isVerified && rugAnalysis.isLpBurned
                     )
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "Honeypot Sim",
-                        statusText = if (!rugAnalysis.honeypotRisk) "Passed (Can Sell)" else "Failed (Tax/Drain)",
-                        isGood = !rugAnalysis.honeypotRisk
+                        statusText = if (!rugAnalysis.isVerified) "Not verified" else if (!rugAnalysis.honeypotRisk) "Passed (Can Sell)" else "Failed (Tax/Drain)",
+                        isGood = rugAnalysis.isVerified && !rugAnalysis.honeypotRisk
                     )
                 }
 
@@ -162,14 +165,14 @@ fun RugCheckCard(
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "Dev Holding",
-                        statusText = "${String.format("%.1f", rugAnalysis.devHoldingPct)}% of supply",
-                        isGood = rugAnalysis.devHoldingPct <= 5.0
+                        statusText = if (rugAnalysis.isVerified) "${String.format("%.1f", rugAnalysis.devHoldingPct)}% of supply" else "Not verified",
+                        isGood = rugAnalysis.isVerified && rugAnalysis.devHoldingPct <= 5.0
                     )
                     SecurityCheckItem(
                         modifier = Modifier.weight(1f),
                         title = "Top 10 Concentration",
-                        statusText = "${String.format("%.1f", rugAnalysis.top10HoldersPct)}%",
-                        isGood = rugAnalysis.top10HoldersPct <= 35.0
+                        statusText = if (rugAnalysis.isVerified) "${String.format("%.1f", rugAnalysis.top10HoldersPct)}%" else "Not verified",
+                        isGood = rugAnalysis.isVerified && rugAnalysis.top10HoldersPct <= 35.0
                     )
                 }
             }
