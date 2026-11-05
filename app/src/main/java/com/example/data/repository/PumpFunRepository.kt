@@ -189,26 +189,31 @@ class PumpFunRepository(
                 }
 
                 if (isTriggered) {
-                    // Execute order via automated trading bot
-                    executeOrder(order, token)
-                    orders[index] = order.copy(
-                        status = OrderStatus.FILLED,
-                        filledAt = System.currentTimeMillis(),
-                        executionNote = "Bot executed at ${String.format("%.7f", token.priceSol)} SOL"
-                    )
+                    val executed = executeOrder(order, token)
+                    if (executed) {
+                        orders[index] = order.copy(
+                            status = OrderStatus.FILLED,
+                            filledAt = System.currentTimeMillis(),
+                            executionNote = "Paper fill at " + String.format("%.7f", token.priceSol) + " SOL"
+                        )
+                        val botAlert = PriceAlert(
+                            id = UUID.randomUUID().toString(),
+                            tokenId = token.id,
+                            tokenSymbol = token.symbol,
+                            title = "Paper Order Filled: " + order.orderType.name,
+                            message = "Paper simulation only. " + token.symbol + " reached " +
+                                String.format("%.7f", token.priceSol) + " SOL. No blockchain transaction was sent.",
+                            timestamp = System.currentTimeMillis(),
+                            type = AlertType.BOT_TRIGGER
+                        )
+                        _alerts.value = listOf(botAlert) + _alerts.value
+                        _recentNotification.value = botAlert
+                    } else {
+                        orders[index] = order.copy(
+                            executionNote = "Trigger reached, but paper execution failed. Order remains active."
+                        )
+                    }
                     updated = true
-
-                    val botAlert = PriceAlert(
-                        id = UUID.randomUUID().toString(),
-                        tokenId = token.id,
-                        tokenSymbol = token.symbol,
-                        title = "🧪 Paper Order Filled: ${order.orderType.name}",
-                        message = "Paper simulation only. Target reached for ${token.symbol} at ${String.format("%.7f", token.priceSol)} SOL. Simulated amount: ${order.amountSol} SOL. No blockchain transaction was sent.",
-                        timestamp = System.currentTimeMillis(),
-                        type = AlertType.BOT_TRIGGER
-                    )
-                    _alerts.value = listOf(botAlert) + _alerts.value
-                    _recentNotification.value = botAlert
                 }
             }
         }
@@ -218,18 +223,12 @@ class PumpFunRepository(
         }
     }
 
-    private fun executeOrder(order: LimitOrder, token: PumpToken) {
-        when (order.orderType) {
-            OrderType.BUY_LIMIT -> {
-                buyToken(token.id, order.amountSol, isAutoBot = true)
-            }
+    private fun executeOrder(order: LimitOrder, token: PumpToken): Boolean {
+        return when (order.orderType) {
+            OrderType.BUY_LIMIT -> buyToken(token.id, order.amountSol, isAutoBot = true)
             OrderType.SELL_LIMIT, OrderType.TAKE_PROFIT, OrderType.STOP_LOSS -> {
-                // Sell holdings for this token
-                val holding = _holdings.value.find { it.tokenId == token.id }
-                if (holding != null) {
-                    // Sell all or proportional
-                    sellToken(token.id, holding.amountTokens, isAutoBot = true)
-                }
+                val holding = _holdings.value.find { it.tokenId == token.id } ?: return false
+                sellToken(token.id, holding.amountTokens, isAutoBot = true)
             }
         }
     }
