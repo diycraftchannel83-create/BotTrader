@@ -9,7 +9,8 @@ enum class DexPaidStatus {
 enum class TokenLaunchStage {
     NEW_BORN,   // Just launched (< 15 mins)
     BONDING,    // Active bonding curve (progress 15% - 99%)
-    GRADUATED   // Raydium migration completed (100% bonding curve reached)
+    GRADUATED,  // Verified graduation/migration from a bonding curve
+    DEX_LISTED  // A live DEX pair exists; bonding-curve state is not implied
 }
 
 data class PriceCandle(
@@ -29,10 +30,12 @@ data class RugAnalysis(
     val isLpBurned: Boolean,
     val honeypotRisk: Boolean,
     val bundledSnipersCount: Int,
-    val warnings: List<String>
+    val warnings: List<String>,
+    val isVerified: Boolean = true
 ) {
     val safetyScore: Int
         get() {
+            if (!isVerified) return 0
             var score = 100
             if (devHoldingPct > 15.0) score -= 30
             else if (devHoldingPct > 8.0) score -= 15
@@ -53,6 +56,8 @@ data class RugAnalysis(
     val riskLevel: RiskLevel
         get() = when {
             safetyScore >= 80 -> RiskLevel.SAFE
+            !isVerified -> RiskLevel.UNKNOWN
+            safetyScore >= 80 -> RiskLevel.SAFE
             safetyScore >= 55 -> RiskLevel.MODERATE
             else -> RiskLevel.HIGH_RISK
         }
@@ -61,7 +66,8 @@ data class RugAnalysis(
 enum class RiskLevel {
     SAFE,
     MODERATE,
-    HIGH_RISK
+    HIGH_RISK,
+    UNKNOWN
 }
 
 data class PumpToken(
@@ -89,7 +95,10 @@ data class PumpToken(
     val rugAnalysis: RugAnalysis,
     val candles: List<PriceCandle>,
     val stage: TokenLaunchStage,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val bondingCurveKnown: Boolean = true,
+    val imageUrl: String = "",
+    val pairUrl: String = ""
 ) {
     val formattedMarketCap: String
         get() = when {
