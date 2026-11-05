@@ -1,88 +1,73 @@
 package com.example.util
 
-import java.security.MessageDigest
-import kotlin.random.Random
-
+/**
+ * Format-only helpers. These functions do NOT prove key ownership or derive Solana public keys.
+ * Real wallet support must use a maintained, audited Solana Ed25519 implementation.
+ */
 object SolanaKeyUtils {
     private const val ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
     fun isValidSolanaAddress(address: String): Boolean {
-        val trimmed = address.trim()
-        if (trimmed.length !in 32..44) return false
-        return trimmed.all { it in ALPHABET }
-    }
-
-    fun isValidPrivateKey(key: String): Boolean {
-        val trimmed = key.trim()
-        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-            // Byte array format: [12, 45, 99, ...]
-            val numbers = trimmed.removeSurrounding("[", "]")
-                .split(",")
-                .mapNotNull { it.trim().toIntOrNull() }
-            return numbers.size in 32..64 && numbers.all { it in 0..255 }
+        val value = address.trim()
+        if (value.length !in 32..44 || value.any { it !in ALPHABET }) return false
+        return try {
+            decodeBase58(value).size == 32
+        } catch (_: IllegalArgumentException) {
+            false
         }
-        // Base58 format
-        if (trimmed.length in 40..90 && trimmed.all { it in ALPHABET }) {
-            return true
-        }
-        // Hex format
-        if (trimmed.length in 64..128 && trimmed.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) {
-            return true
-        }
-        return false
     }
 
     /**
-     * Derives a deterministic, valid-format Solana Base58 public key from the private key
+     * Checks only the textual shape of common key exports. This is NOT cryptographic validation.
+     * Never use this result to authorize signing or wallet ownership.
      */
+    fun isValidPrivateKey(key: String): Boolean {
+        val value = key.trim()
+        if (value.startsWith("[") && value.endsWith("]")) {
+            val parts = value.removeSurrounding("[", "]").split(",")
+            if (parts.size !in 32..64) return false
+            return parts.all { it.trim().toIntOrNull() in 0..255 }
+        }
+        if (value.length in 40..90 && value.all { it in ALPHABET }) {
+            return try { decodeBase58(value).size in 32..64 } catch (_: IllegalArgumentException) { false }
+        }
+        if (value.length in 64..128 && value.length % 2 == 0 &&
+            value.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) return true
+        return false
+    }
+
+    @Deprecated("Not implemented: use an audited Solana Ed25519 key derivation library.")
     fun deriveSolanaAddress(privateKey: String): String {
-        val trimmed = privateKey.trim()
-        val md = MessageDigest.getInstance("SHA-256")
-        val hash = md.digest(trimmed.toByteArray(Charsets.UTF_8))
-        
-        // Encode to Base58
-        val base58 = encodeBase58(hash)
-        // Ensure 44 chars like standard Solana pubkeys
-        val padded = base58.padEnd(44, 'x').take(44)
-        return padded
+        throw UnsupportedOperationException(
+            "Solana public-key derivation is unavailable. Do not use a hash-derived address."
+        )
     }
 
     fun maskPrivateKey(key: String): String {
-        val trimmed = key.trim()
-        return if (trimmed.length > 8) {
-            "••••••••••••••••${trimmed.takeLast(4)}"
-        } else {
-            "••••••••"
-        }
+        val value = key.trim()
+        return if (value.length > 8) "••••••••••••••••${value.takeLast(4)}" else "••••••••"
     }
 
+    @Deprecated("A transaction signature must come from real Ed25519 signing and chain submission.")
     fun generateTxSignature(): String {
-        val bytes = ByteArray(64)
-        Random.nextBytes(bytes)
-        return encodeBase58(bytes).take(64).padEnd(64, 'z')
+        throw UnsupportedOperationException(
+            "Fake transaction signatures are disabled. A signature is available only after signing and submitting a real transaction."
+        )
     }
 
-    private fun encodeBase58(input: ByteArray): String {
-        if (input.isEmpty()) return ""
-        var bi = java.math.BigInteger(1, input)
-        val sb = StringBuilder()
+    private fun decodeBase58(value: String): ByteArray {
+        if (value.isEmpty()) return byteArrayOf()
+        var number = java.math.BigInteger.ZERO
         val base = java.math.BigInteger.valueOf(58)
-
-        while (bi > java.math.BigInteger.ZERO) {
-            val rem = bi.remainder(base)
-            bi = bi.divide(base)
-            sb.append(ALPHABET[rem.toInt()])
+        value.forEach { char ->
+            val digit = ALPHABET.indexOf(char)
+            require(digit >= 0) { "Invalid Base58 character" }
+            number = number.multiply(base).add(java.math.BigInteger.valueOf(digit.toLong()))
         }
-
-        // Add leading zeros
-        for (b in input) {
-            if (b.toInt() == 0) {
-                sb.append(ALPHABET[0])
-            } else {
-                break
-            }
+        val decoded = if (number == java.math.BigInteger.ZERO) byteArrayOf() else number.toByteArray().let {
+            if (it.firstOrNull() == 0.toByte()) it.copyOfRange(1, it.size) else it
         }
-
-        return sb.reverse().toString()
+        val leadingZeros = value.takeWhile { it == '1' }.length
+        return ByteArray(leadingZeros) + decoded
     }
 }
