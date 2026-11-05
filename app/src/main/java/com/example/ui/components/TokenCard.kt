@@ -41,7 +41,7 @@ fun TokenCard(
     val context = LocalContext.current
 
     // Flash background slightly on price update
-    val isSpike = token.change1m > 0
+    val isSpike = token.change5m > 0
     val priceChangeColor by animateColorAsState(
         targetValue = if (isSpike) NeonGreen else DangerRed,
         animationSpec = tween(durationMillis = 400),
@@ -95,14 +95,26 @@ fun TokenCard(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
-                        if (token.stage == TokenLaunchStage.GRADUATED) {
-                            Box(
-                                modifier = Modifier
-                                    .background(NeonCyan.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                            ) {
-                                Text("🎓 Raydium", color = NeonCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        when (token.stage) {
+                            TokenLaunchStage.GRADUATED -> {
+                                Box(
+                                    modifier = Modifier
+                                        .background(NeonCyan.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text("🎓 GRADUATED", color = NeonCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
+                            TokenLaunchStage.DEX_LISTED -> {
+                                Box(
+                                    modifier = Modifier
+                                        .background(NeonCyan.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text("DEX LISTED", color = NeonCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            else -> Unit
                         }
                     }
                     Text(
@@ -177,9 +189,9 @@ fun TokenCard(
                             color = TextMuted,
                             fontSize = 11.sp
                         )
-                        val changeSign = if (token.change1m >= 0) "+" else ""
+                        val changeSign = if (token.change5m >= 0) "+" else ""
                         Text(
-                            text = "$changeSign${String.format("%.1f", token.change1m)}%",
+                            text = "5m $changeSign${String.format("%.1f", token.change5m)}%",
                             color = priceChangeColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
@@ -205,31 +217,33 @@ fun TokenCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bonding Curve Progress Bar
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Bonding Curve",
-                        color = TextMuted,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "${(token.bondingCurveProgress * 100).toInt()}% to Raydium",
-                        color = if (token.bondingCurveProgress > 0.8f) NeonGreen else TextSecondary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+            // Bonding progress is shown only when a source actually provides it.
+            if (token.bondingCurveKnown) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Bonding Curve", color = TextMuted, fontSize = 10.sp)
+                        Text(
+                            text = "${(token.bondingCurveProgress * 100).toInt()}% to graduation",
+                            color = if (token.bondingCurveProgress > 0.8f) NeonGreen else TextSecondary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress = { token.bondingCurveProgress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                        color = if (token.bondingCurveProgress > 0.8f) NeonGreen else NeonCyan,
+                        trackColor = CardHighlight
                     )
                 }
-                LinearProgressIndicator(
-                    progress = { token.bondingCurveProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp),
-                    color = if (token.bondingCurveProgress > 0.8f) NeonGreen else NeonCyan,
-                    trackColor = CardHighlight,
+            } else {
+                Text(
+                    text = "Bonding curve progress: Not provided by DEX market data",
+                    color = TextMuted,
+                    fontSize = 10.sp
                 )
             }
 
@@ -294,7 +308,7 @@ fun TokenCard(
                     // Rug Score Pill
                     val rugBadgeColor = when (token.rugAnalysis.riskLevel) {
                         RiskLevel.SAFE -> SafeGreen
-                        RiskLevel.MODERATE -> WarningAmber
+                        RiskLevel.MODERATE, RiskLevel.UNKNOWN -> WarningAmber
                         RiskLevel.HIGH_RISK -> DangerRed
                     }
                     Box(
@@ -304,7 +318,7 @@ fun TokenCard(
                             .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "🛡️ ${token.rugAnalysis.safetyScore}",
+                            text = if (token.rugAnalysis.isVerified) "🛡️ ${token.rugAnalysis.safetyScore}" else "🛡️ N/A",
                             color = rugBadgeColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
