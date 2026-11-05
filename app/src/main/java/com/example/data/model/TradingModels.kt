@@ -98,7 +98,7 @@ data class BotStrategyConfig(
     val minRugScoreForSnipe: Int = 85,
     val maxDevHoldingForSnipe: Double = 5.0,
     val requireDexPaidForSnipe: Boolean = true,
-    val snipeAmountSol: Double = 0.25,
+    val snipeAmountSol: Double = 0.01,
     val defaultTakeProfitPct: Double = 75.0,
     val defaultStopLossPct: Double = 25.0,
     val trailingStopEnabled: Boolean = true,
