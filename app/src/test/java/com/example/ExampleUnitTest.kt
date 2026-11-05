@@ -130,7 +130,7 @@ class ExampleUnitTest {
 
     @Test
     fun paperWalletCannotImportKeysOrWithdraw() {
-        val repo = com.example.data.repository.PumpFunRepository()
+        val repo = com.example.data.repository.PumpFunRepository(autoStartMarketFeed = false)
         assertTrue(repo.importPrivateKey("not-a-real-key").isFailure)
         assertTrue(repo.withdrawSol("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", 1.0).isFailure)
         assertEquals(5.0, repo.walletSolBalance.value, 0.0001)
