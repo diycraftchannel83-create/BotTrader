@@ -508,8 +508,8 @@ class PumpFunRepository(
                         id = UUID.randomUUID().toString(),
                         tokenId = token.id,
                         tokenSymbol = token.symbol,
-                        title = "🤖 Bot Trade Executed: ${order.orderType.name}",
-                        message = "Target reached for ${token.symbol} at ${String.format("%.7f", token.priceSol)} SOL. Amount: ${order.amountSol} SOL",
+                        title = "🧪 Paper Order Filled: ${order.orderType.name}",
+                        message = "Paper simulation only. Target reached for ${token.symbol} at ${String.format("%.7f", token.priceSol)} SOL. Simulated amount: ${order.amountSol} SOL. No blockchain transaction was sent.",
                         timestamp = System.currentTimeMillis(),
                         type = AlertType.BOT_TRIGGER
                     )
@@ -587,7 +587,7 @@ class PumpFunRepository(
             priceSol = token.priceSol,
             realizedPnlSol = null,
             timestamp = System.currentTimeMillis(),
-            txHash = "sol_tx_${UUID.randomUUID().toString().take(12)}",
+            txHash = "PAPER-${UUID.randomUUID().toString().take(12)}",
             isAutoBot = isAutoBot
         )
         _transactions.value = listOf(tx) + _transactions.value
@@ -758,8 +758,8 @@ class PumpFunRepository(
                     id = UUID.randomUUID().toString(),
                     tokenId = token.id,
                     tokenSymbol = token.symbol,
-                    title = "🎯 Auto-Snipe Executed: ${token.symbol}",
-                    message = "Bot sniped ${config.snipeAmountSol} SOL on ${token.symbol} matching safety criteria (Score: ${token.rugAnalysis.safetyScore})",
+                    title = "🧪 Paper Auto-Snipe: ${token.symbol}",
+                    message = "Paper simulation only: would allocate ${config.snipeAmountSol} SOL to ${token.symbol}. No blockchain transaction was sent. Demo score: ${token.rugAnalysis.safetyScore}.",
                     timestamp = System.currentTimeMillis(),
                     type = AlertType.BOT_TRIGGER
                 )
