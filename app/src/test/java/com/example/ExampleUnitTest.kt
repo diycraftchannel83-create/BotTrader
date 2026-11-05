@@ -55,6 +55,63 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun autoBuyDefaultsToPointZeroOneSolAndRequiresExplicitEnablement() {
+        val config = BotStrategyConfig()
+        assertEquals(0.01, config.buyAmountSol, 0.0)
+        assertFalse(config.autoBuyEnabled)
+        assertFalse(config.allowUnverifiedSecurityData)
+    }
+
+    @Test
+    fun smartExitTriggersStopLossTakeProfitAndTrailingStop() {
+        val stop = com.example.data.repository.SmartTradingStrategy.evaluateExit(-21.0, 0.0, 100.0, 20.0, 15.0)
+        assertTrue(stop.shouldSell)
+        assertEquals("STOP_LOSS", stop.reason)
+
+        val target = com.example.data.repository.SmartTradingStrategy.evaluateExit(100.0, 100.0, 100.0, 20.0, 15.0)
+        assertTrue(target.shouldSell)
+        assertEquals("TAKE_PROFIT", target.reason)
+
+        val trailing = com.example.data.repository.SmartTradingStrategy.evaluateExit(20.0, 40.0, 100.0, 20.0, 15.0)
+        assertTrue(trailing.shouldSell)
+        assertEquals("TRAILING_STOP", trailing.reason)
+    }
+
+    @Test
+    fun smartCandidateScannerBlocksUnverifiedTokenByDefault() {
+        val token = PumpToken(
+            id = "MintAddressExample",
+            name = "Example",
+            symbol = "EX",
+            description = "Test token",
+            avatarEmoji = "🪙",
+            avatarBgColor = 0L,
+            createdAt = System.currentTimeMillis(),
+            priceUsd = 0.01,
+            priceSol = 0.0001,
+            change1m = 0.0,
+            change5m = 10.0,
+            change1h = 20.0,
+            marketCapUsd = 100_000.0,
+            volume24hUsd = 100_000.0,
+            bondingCurveProgress = 0f,
+            holderCount = 0,
+            telegramUrl = "",
+            twitterUrl = "",
+            websiteUrl = "",
+            dexPaidStatus = DexPaidStatus.PENDING,
+            dexPaidTime = null,
+            rugAnalysis = RugAnalysis(0.0, 0.0, false, false, false, false, 0, emptyList(), isVerified = false),
+            candles = emptyList(),
+            stage = TokenLaunchStage.DEX_LISTED,
+            bondingCurveKnown = false,
+            liquidityUsd = 100_000.0
+        )
+        val result = com.example.data.repository.SmartTradingStrategy.assess(token, BotStrategyConfig())
+        assertFalse(result.eligible)
+        assertTrue(result.blockers.any { it.contains("unverified") })
+    }
+    @Test
     fun testPortfolioHoldingPnlCalculation() {
         val holding = PortfolioHolding(
             tokenId = "test_1",
