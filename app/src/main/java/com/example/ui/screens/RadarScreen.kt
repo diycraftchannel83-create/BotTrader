@@ -185,7 +185,7 @@ fun RadarScreen(
             }
 
             // Market Stats Header Row
-            val dexPaidCount = tokens.count { it.dexPaidStatus == DexPaidStatus.CONFIRMED }
+            val verifiedSecurityCount = tokens.count { it.rugAnalysis.isVerified }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -199,9 +199,9 @@ fun RadarScreen(
                     modifier = Modifier.weight(1f)
                 )
                 StatPill(
-                    label = "Dex Paid Alerts",
-                    value = "$dexPaidCount 🚀",
-                    color = DexPaidGold,
+                    label = "Security Verified",
+                    value = "$verifiedSecurityCount",
+                    color = WarningAmber,
                     modifier = Modifier.weight(1.2f)
                 )
                 StatPill(
@@ -285,10 +285,9 @@ fun RadarScreen(
                 }
                 item {
                     FilterChipItem(
-                        label = "🚀 Dex Paid Only",
-                        isSelected = activeFilter == TokenFilter.DEX_PAID,
-                        activeBorderColor = DexPaidGold,
-                        onClick = { viewModel.setFilter(TokenFilter.DEX_PAID) }
+                        label = "DEX Listed",
+                        isSelected = activeFilter == TokenFilter.DEX_LISTED,
+                        onClick = { viewModel.setFilter(TokenFilter.DEX_LISTED) }
                     )
                 }
                 item {
@@ -303,20 +302,6 @@ fun RadarScreen(
                         label = "🛡️ Safe (Rug > 80)",
                         isSelected = activeFilter == TokenFilter.SAFE_ONLY,
                         onClick = { viewModel.setFilter(TokenFilter.SAFE_ONLY) }
-                    )
-                }
-                item {
-                    FilterChipItem(
-                        label = "⚡ Bonding Curve",
-                        isSelected = activeFilter == TokenFilter.BONDING,
-                        onClick = { viewModel.setFilter(TokenFilter.BONDING) }
-                    )
-                }
-                item {
-                    FilterChipItem(
-                        label = "🎓 Raydium Graduated",
-                        isSelected = activeFilter == TokenFilter.GRADUATED,
-                        onClick = { viewModel.setFilter(TokenFilter.GRADUATED) }
                     )
                 }
             }
