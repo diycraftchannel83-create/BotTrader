@@ -55,7 +55,7 @@ DexScreener is a market/pair data source, not a token security oracle. The curre
 - Paper exits: take profit +100%, stop loss -20%, trailing stop 15 percentage points below peak PnL.
 - Auto-buy is OFF by default. Unverified security data is blocked by default.
 
-Scores are ranking heuristics, not predictive probabilities. No 500x outcome is promised or inferable from these public market fields. The current DEX data adapter does not verify authorities, holder concentration, honeypot behavior or LP locks. Enabling purchases while those checks are unverified is a deliberate high-risk override. All orders in this phase are paper simulations and do not create on-chain transactions.
+Scores are ranking heuristics, not predictive probabilities. A 30x outcome is an aspirational target only; it is not promised or inferable from these public market fields. The current DEX data adapter does not verify authorities, holder concentration, honeypot behavior or LP locks. Enabling purchases while those checks are unverified is a deliberate high-risk override. All orders in this phase are paper simulations and do not create on-chain transactions.
 ## Required architecture before live trading
 
 1. **Market data adapters** — real Solana RPC/WebSocket plus verified token and pool data. Mock data must remain isolated.
