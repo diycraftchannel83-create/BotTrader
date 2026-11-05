@@ -26,7 +26,7 @@ object SolanaKeyUtils {
         if (value.startsWith("[") && value.endsWith("]")) {
             val parts = value.removeSurrounding("[", "]").split(",")
             if (parts.size !in 32..64) return false
-            return parts.all { it.trim().toIntOrNull() in 0..255 }
+            return parts.all { part -> part.trim().toIntOrNull()?.let { it in 0..255 } == true }
         }
         if (value.length in 40..90 && value.all { it in ALPHABET }) {
             return try { decodeBase58(value).size in 32..64 } catch (_: IllegalArgumentException) { false }
