@@ -55,7 +55,6 @@ data class RugAnalysis(
 
     val riskLevel: RiskLevel
         get() = when {
-            safetyScore >= 80 -> RiskLevel.SAFE
             !isVerified -> RiskLevel.UNKNOWN
             safetyScore >= 80 -> RiskLevel.SAFE
             safetyScore >= 55 -> RiskLevel.MODERATE
