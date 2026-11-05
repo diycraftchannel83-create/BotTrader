@@ -524,6 +524,14 @@ private fun BotConfigDialog(
         confirmButton = {
             Button(
                 onClick = {
+                    val configuredWeights = listOf(
+                        liquidityWeightText, volumeWeightText, momentumWeightText,
+                        ageWeightText, marketCapWeightText, trendWeightText
+                    ).map { it.toIntOrNull()?.coerceIn(0, 100) ?: 0 }
+                    if (configuredWeights.sum() == 0) {
+                        Toast.makeText(context, "At least one scoring weight must be greater than zero.", Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
                     val updated = currentConfig.copy(
                         autoBuyEnabled = autoBuy,
                         autoSellEnabled = autoSell,
