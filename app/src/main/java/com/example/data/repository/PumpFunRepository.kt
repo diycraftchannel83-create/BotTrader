@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
+import java.time.Instant
+import java.time.ZoneOffset
 
 enum class MarketFeedStatus { CONNECTING, LIVE, STALE, ERROR }
 
@@ -35,6 +37,12 @@ class PumpFunRepository(
     val marketError: StateFlow<String?> = _marketError.asStateFlow()
 
     private val refreshMutex = Mutex()
+    private val autoBoughtTokenIds = mutableSetOf<String>()
+    private val peakPnlByToken = mutableMapOf<String, Double>()
+    private val _candidateAssessments = MutableStateFlow<List<CandidateAssessment>>(emptyList())
+    val candidateAssessments: StateFlow<List<CandidateAssessment>> = _candidateAssessments.asStateFlow()
+    private val _autoTradeStatus = MutableStateFlow("Auto trading is OFF")
+    val autoTradeStatus: StateFlow<String> = _autoTradeStatus.asStateFlow()
 
     // This is a paper-trading profile only. No private key or on-chain wallet is connected.
     private val _walletSolBalance = MutableStateFlow(5.0)
@@ -101,6 +109,7 @@ class PumpFunRepository(
                     _lastMarketUpdate.value = System.currentTimeMillis()
                     _marketError.value = null
                     _marketFeedStatus.value = MarketFeedStatus.LIVE
+                    evaluateSmartAutoTrading(_tokens.value)
 
                     // Limit orders are evaluated only against fresh market snapshots and remain paper-only.
                     _tokens.value.forEach { token ->
@@ -118,6 +127,107 @@ class PumpFunRepository(
         }
     }
 
+    private fun evaluateSmartAutoTrading(marketTokens: List<PumpToken>) {
+        val config = _botConfig.value
+        val assessments = marketTokens.map { SmartTradingStrategy.assess(it, config) }
+            .sortedByDescending { it.score }
+        _candidateAssessments.value = assessments
+
+        val dayStart = Instant.now().atZone(ZoneOffset.UTC).toLocalDate()
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val realizedToday = _transactions.value
+            .filter { it.type == "SELL" && it.timestamp >= dayStart }
+            .sumOf { it.realizedPnlSol ?: 0.0 }
+
+        if (!config.isMasterEnabled) {
+            _autoTradeStatus.value = "Paper engine paused"
+            return
+        }
+
+        if (config.autoSellEnabled) {
+            _holdings.value.toList().forEach { holding ->
+                val token = marketTokens.firstOrNull { it.id == holding.tokenId } ?: return@forEach
+                if (holding.entryPriceSol <= 0.0 || token.priceSol <= 0.0) return@forEach
+                val pnlPct = ((token.priceSol - holding.entryPriceSol) / holding.entryPriceSol) * 100.0
+                val peak = maxOf(peakPnlByToken[holding.tokenId] ?: pnlPct, pnlPct)
+                peakPnlByToken[holding.tokenId] = peak
+                val exit = SmartTradingStrategy.evaluateExit(
+                    pnlPct = pnlPct,
+                    peakPnlPct = peak,
+                    takeProfitPct = config.takeProfitPct,
+                    stopLossPct = config.stopLossPct,
+                    trailingStopPct = config.trailingStopPctAuto
+                )
+                if (exit.shouldSell && sellToken(holding.tokenId, holding.amountTokens, isAutoBot = true)) {
+                    autoBoughtTokenIds.add(holding.tokenId)
+                    val alert = PriceAlert(
+                        id = UUID.randomUUID().toString(),
+                        tokenId = token.id,
+                        tokenSymbol = token.symbol,
+                        title = "Paper Auto-Sell: ${exit.reason}",
+                        message = "${token.symbol} exited at ${String.format("%.2f", pnlPct)}% PnL. Paper simulation only; no blockchain transaction was sent.",
+                        timestamp = System.currentTimeMillis(),
+                        type = AlertType.BOT_TRIGGER
+                    )
+                    _alerts.value = listOf(alert) + _alerts.value
+                    _recentNotification.value = alert
+                    peakPnlByToken.remove(holding.tokenId)
+                }
+            }
+        }
+
+        if (realizedToday <= -config.maxDailyLossSol) {
+            _autoTradeStatus.value = "Daily loss limit reached; new buys blocked"
+            return
+        }
+        if (!config.autoBuyEnabled) {
+            _autoTradeStatus.value = "Auto-buy disabled; scanning ${assessments.size} candidates"
+            return
+        }
+
+        val openPositions = _holdings.value.size
+        if (openPositions >= config.maxOpenPositions) {
+            _autoTradeStatus.value = "Maximum open positions reached"
+            return
+        }
+
+        val candidate = assessments.firstOrNull { assessment ->
+            assessment.eligible && assessment.tokenId !in autoBoughtTokenIds &&
+                _holdings.value.none { it.tokenId == assessment.tokenId }
+        }
+        if (candidate == null) {
+            val top = assessments.firstOrNull()
+            _autoTradeStatus.value = top?.let {
+                "No eligible candidate. Top ${it.symbol}: ${it.score}/100"
+            } ?: "No market candidates available"
+            return
+        }
+
+        val amount = config.buyAmountSol
+        if (!amount.isFinite() || amount <= 0.0 || _walletSolBalance.value < amount) {
+            _autoTradeStatus.value = "Insufficient paper SOL balance for configured order"
+            return
+        }
+        val token = marketTokens.firstOrNull { it.id == candidate.tokenId } ?: return
+        if (buyToken(token.id, amount, isAutoBot = true)) {
+            autoBoughtTokenIds.add(token.id)
+            peakPnlByToken[token.id] = 0.0
+            val alert = PriceAlert(
+                id = UUID.randomUUID().toString(),
+                tokenId = token.id,
+                tokenSymbol = token.symbol,
+                title = "Paper Auto-Buy: ${candidate.score}/100",
+                message = "Bought ${token.symbol} with $amount SOL in paper mode. Score is a screening heuristic, not a 500x prediction. No blockchain transaction was sent.",
+                timestamp = System.currentTimeMillis(),
+                type = AlertType.BOT_TRIGGER
+            )
+            _alerts.value = listOf(alert) + _alerts.value
+            _recentNotification.value = alert
+            _autoTradeStatus.value = "Paper bought ${token.symbol} for $amount SOL (${candidate.score}/100)"
+        } else {
+            _autoTradeStatus.value = "Paper buy failed for ${token.symbol}"
+        }
+    }
     private fun startMarketRefreshLoop() {
         scope.launch {
             while (true) {
@@ -167,7 +277,8 @@ class PumpFunRepository(
             stage = TokenLaunchStage.DEX_LISTED,
             bondingCurveKnown = false,
             imageUrl = iconUrl,
-            pairUrl = pairUrl
+            pairUrl = pairUrl,
+            liquidityUsd = liquidityUsd
         )
     }
 

@@ -39,6 +39,8 @@ fun TradingBotScreen(
 ) {
     val context = LocalContext.current
     val botConfig by viewModel.botConfig.collectAsState()
+    val candidateAssessments by viewModel.candidateAssessments.collectAsState()
+    val autoTradeStatus by viewModel.autoTradeStatus.collectAsState()
 
     var showConfigModal by remember { mutableStateOf(false) }
 
@@ -78,7 +80,7 @@ fun TradingBotScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "Autonomous Limit Orders & Meme Sniper Engine",
+                            text = "Smart Auto-Buy / Auto-Sell • Paper Mode",
                             color = TextSecondary,
                             fontSize = 11.sp
                         )
@@ -167,21 +169,21 @@ fun TradingBotScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             StrategyBadge(
-                                label = "Auto-Snipe",
-                                value = if (botConfig.autoSnipeNewTokens) "ACTIVE (${botConfig.snipeAmountSol} SOL)" else "OFF",
-                                isGreen = botConfig.autoSnipeNewTokens,
+                                label = "Smart Auto-Buy",
+                                value = if (botConfig.autoBuyEnabled) "ON (${botConfig.buyAmountSol} SOL)" else "OFF",
+                                isGreen = botConfig.autoBuyEnabled,
                                 modifier = Modifier.weight(1f)
                             )
                             StrategyBadge(
-                                label = "Min Rug Score",
-                                value = "🛡️ ${botConfig.minRugScoreForSnipe}+",
+                                label = "Min Score",
+                                value = "${botConfig.minCandidateScore}/100",
                                 isGreen = true,
                                 modifier = Modifier.weight(1f)
                             )
                             StrategyBadge(
-                                label = "Dex Paid Required",
-                                value = if (botConfig.requireDexPaidForSnipe) "YES 🚀" else "NO",
-                                isGreen = botConfig.requireDexPaidForSnipe,
+                                label = "Auto-Sell",
+                                value = if (botConfig.autoSellEnabled) "ON" else "OFF",
+                                isGreen = botConfig.autoSellEnabled,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -189,6 +191,29 @@ fun TradingBotScreen(
                 }
             }
 
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("SMART SCANNER", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(autoTradeStatus, color = TextSecondary, fontSize = 11.sp)
+                        Text("0.01 SOL per entry • Max ${botConfig.maxOpenPositions} positions • Daily loss cap ${botConfig.maxDailyLossSol} SOL", color = TextMuted, fontSize = 10.sp)
+                        Text("500x is not predictable. Scores rank market conditions and do not forecast returns.", color = WarningAmber, fontSize = 10.sp)
+                        candidateAssessments.take(5).forEach { candidate ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(candidate.symbol, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(candidate.blockers.firstOrNull() ?: candidate.reasons.take(2).joinToString(" • "), color = TextMuted, fontSize = 9.sp, maxLines = 2)
+                                }
+                                Text("${candidate.score}/100", color = if (candidate.eligible) NeonGreen else WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
             // Active Orders Title
             item {
                 Row(
@@ -404,11 +429,15 @@ private fun BotConfigDialog(
     onDismiss: () -> Unit,
     onSave: (BotStrategyConfig) -> Unit
 ) {
-    var autoSnipe by remember { mutableStateOf(currentConfig.autoSnipeNewTokens) }
-    var minRugScore by remember { mutableStateOf(currentConfig.minRugScoreForSnipe.toFloat()) }
-    var maxDevHolding by remember { mutableStateOf(currentConfig.maxDevHoldingForSnipe.toFloat()) }
-    var requireDexPaid by remember { mutableStateOf(currentConfig.requireDexPaidForSnipe) }
-    var snipeAmountText by remember { mutableStateOf(currentConfig.snipeAmountSol.toString()) }
+    var autoBuy by remember { mutableStateOf(currentConfig.autoBuyEnabled) }
+    var autoSell by remember { mutableStateOf(currentConfig.autoSellEnabled) }
+    var allowUnverified by remember { mutableStateOf(currentConfig.allowUnverifiedSecurityData) }
+    var buyAmountText by remember { mutableStateOf(currentConfig.buyAmountSol.toString()) }
+    var minScoreText by remember { mutableStateOf(currentConfig.minCandidateScore.toString()) }
+    var minLiquidityText by remember { mutableStateOf(currentConfig.minLiquidityUsd.toString()) }
+    var maxPositionsText by remember { mutableStateOf(currentConfig.maxOpenPositions.toString()) }
+    var dailyLossText by remember { mutableStateOf(currentConfig.maxDailyLossSol.toString()) }
+    var trailingStopText by remember { mutableStateOf(currentConfig.trailingStopPctAuto.toString()) }
     var takeProfitText by remember { mutableStateOf(currentConfig.defaultTakeProfitPct.toString()) }
     var stopLossText by remember { mutableStateOf(currentConfig.defaultStopLossPct.toString()) }
 
@@ -417,68 +446,39 @@ private fun BotConfigDialog(
         title = { Text("Customize Bot Strategy", color = TextPrimary, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Auto Snipe Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text("Auto-Snipe New Launches", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text("Buys tokens matching safety rules", color = TextMuted, fontSize = 10.sp)
+                        Text("Smart Auto-Buy", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Automatically buy eligible candidates in paper mode", color = TextMuted, fontSize = 10.sp)
                     }
-                    Switch(checked = autoSnipe, onCheckedChange = { autoSnipe = it })
+                    Switch(checked = autoBuy, onCheckedChange = { autoBuy = it })
                 }
-
-                // Dex Paid Required
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text("Require Dex Paid Status", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text("Only snipe if dev paid listing fee", color = TextMuted, fontSize = 10.sp)
+                        Text("Automatic Exit", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Stop-loss, take-profit and trailing stop", color = TextMuted, fontSize = 10.sp)
                     }
-                    Switch(checked = requireDexPaid, onCheckedChange = { requireDexPaid = it })
+                    Switch(checked = autoSell, onCheckedChange = { autoSell = it })
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("Allow unverified security data", color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("HIGH RISK: current feed cannot verify authorities or holders", color = TextMuted, fontSize = 10.sp)
+                    }
+                    Switch(checked = allowUnverified, onCheckedChange = { allowUnverified = it })
                 }
 
-                // Min Rug Safety Score Slider
-                Column {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Min Rug Safety Score", color = TextMuted, fontSize = 11.sp)
-                        Text("${minRugScore.toInt()}/100", color = NeonGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Slider(
-                        value = minRugScore,
-                        onValueChange = { minRugScore = it },
-                        valueRange = 50f..95f,
-                        steps = 8
-                    )
-                }
 
-                // Max Dev Holding Slider
-                Column {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Max Allowed Dev Supply %", color = TextMuted, fontSize = 11.sp)
-                        Text("${String.format("%.1f", maxDevHolding)}%", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Slider(
-                        value = maxDevHolding,
-                        onValueChange = { maxDevHolding = it },
-                        valueRange = 1f..15f,
-                        steps = 14
-                    )
+                OutlinedTextField(value = buyAmountText, onValueChange = { buyAmountText = it }, label = { Text("Buy amount per token (SOL) — default 0.01") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = minScoreText, onValueChange = { minScoreText = it }, label = { Text("Min score (0-100)") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = maxPositionsText, onValueChange = { maxPositionsText = it }, label = { Text("Max positions") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
-
-                // Snipe Amount in SOL
-                OutlinedTextField(
-                    value = snipeAmountText,
-                    onValueChange = { snipeAmountText = it },
-                    label = { Text("Snipe Amount per Token (SOL)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                OutlinedTextField(value = minLiquidityText, onValueChange = { minLiquidityText = it }, label = { Text("Minimum liquidity (USD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = dailyLossText, onValueChange = { dailyLossText = it }, label = { Text("Daily loss cap (SOL)") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = trailingStopText, onValueChange = { trailingStopText = it }, label = { Text("Trailing stop %") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
 
                 // Default Take Profit & Stop Loss
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -503,13 +503,17 @@ private fun BotConfigDialog(
             Button(
                 onClick = {
                     val updated = currentConfig.copy(
-                        autoSnipeNewTokens = autoSnipe,
-                        minRugScoreForSnipe = minRugScore.toInt(),
-                        maxDevHoldingForSnipe = maxDevHolding.toDouble(),
-                        requireDexPaidForSnipe = requireDexPaid,
-                        snipeAmountSol = snipeAmountText.toDoubleOrNull() ?: currentConfig.snipeAmountSol,
-                        defaultTakeProfitPct = takeProfitText.toDoubleOrNull() ?: currentConfig.defaultTakeProfitPct,
-                        defaultStopLossPct = stopLossText.toDoubleOrNull() ?: currentConfig.defaultStopLossPct
+                        autoBuyEnabled = autoBuy,
+                        autoSellEnabled = autoSell,
+                        allowUnverifiedSecurityData = allowUnverified,
+                        buyAmountSol = buyAmountText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.buyAmountSol,
+                        minCandidateScore = minScoreText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.minCandidateScore,
+                        minLiquidityUsd = minLiquidityText.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: currentConfig.minLiquidityUsd,
+                        maxOpenPositions = maxPositionsText.toIntOrNull()?.coerceIn(1, 20) ?: currentConfig.maxOpenPositions,
+                        maxDailyLossSol = dailyLossText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.maxDailyLossSol,
+                        trailingStopPctAuto = trailingStopText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.trailingStopPctAuto,
+                        takeProfitPct = takeProfitText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.takeProfitPct,
+                        stopLossPct = stopLossText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.stopLossPct
                     )
                     onSave(updated)
                 },

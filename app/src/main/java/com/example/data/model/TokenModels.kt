@@ -97,7 +97,8 @@ data class PumpToken(
     val isFavorite: Boolean = false,
     val bondingCurveKnown: Boolean = true,
     val imageUrl: String = "",
-    val pairUrl: String = ""
+    val pairUrl: String = "",
+    val liquidityUsd: Double = 0.0
 ) {
     val formattedMarketCap: String
         get() = when {

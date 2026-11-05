@@ -32,6 +32,30 @@ The market feed now reads public Solana DEX pair data from DexScreener. Prices, 
 ### Phase 1 data limitations
 
 DexScreener is a market/pair data source, not a token security oracle. The current adapter does not claim to verify mint/freeze authorities, holder concentration, LP locks, honeypot behavior, Pump.fun bonding progress, holder counts or historical OHLC candles. Unverified security checks display N/A; the app must not classify these tokens as safe based on missing data.
+## Phase 2 — Smart auto-trading foundation (paper only)
+
+- [x] Add deterministic candidate scoring using pair liquidity, 24h volume, 5m/1h momentum, pair age and market-cap range.
+- [x] Add explicit eligibility blockers and default rejection when on-chain security data is unverified.
+- [x] Add configurable 0.01 SOL default paper entry size, candidate score threshold, liquidity/volume floors and maximum open positions.
+- [x] Add paper auto-buy with duplicate-entry prevention and balance checks.
+- [x] Add paper auto-sell using stop-loss, take-profit and trailing-stop rules.
+- [x] Add a daily realized-loss gate that blocks new buys but does not disable protective exits.
+- [x] Add candidate score/status UI and controls for enabling auto-buy/auto-sell.
+- [x] Add unit tests for default risk gates and exit decisions.
+- [ ] Validate the smart auto-trading branch with CI and run extended paper-trading tests.
+
+### Strategy defaults
+
+- Entry size: 0.01 SOL per token.
+- Candidate score: at least 75/100.
+- Minimum liquidity: USD 20,000; minimum 24-hour volume: USD 50,000.
+- Market-cap range: USD 10,000 to USD 2,000,000; pair age up to 48 hours.
+- Require positive 5-minute and 1-hour momentum.
+- Maximum open positions: 3; daily realized loss cap: 0.05 SOL.
+- Paper exits: take profit +100%, stop loss -20%, trailing stop 15 percentage points below peak PnL.
+- Auto-buy is OFF by default. Unverified security data is blocked by default.
+
+Scores are ranking heuristics, not predictive probabilities. No 500x outcome is promised or inferable from these public market fields. The current DEX data adapter does not verify authorities, holder concentration, honeypot behavior or LP locks. Enabling purchases while those checks are unverified is a deliberate high-risk override. All orders in this phase are paper simulations and do not create on-chain transactions.
 ## Required architecture before live trading
 
 1. **Market data adapters** — real Solana RPC/WebSocket plus verified token and pool data. Mock data must remain isolated.

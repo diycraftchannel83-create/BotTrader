@@ -66,6 +66,8 @@ class MainViewModel(
     val marketFeedStatus: StateFlow<com.example.data.repository.MarketFeedStatus> = repository.marketFeedStatus
     val lastMarketUpdate: StateFlow<Long?> = repository.lastMarketUpdate
     val marketError: StateFlow<String?> = repository.marketError
+    val candidateAssessments: StateFlow<List<com.example.data.repository.CandidateAssessment>> = repository.candidateAssessments
+    val autoTradeStatus: StateFlow<String> = repository.autoTradeStatus
 
     val filteredTokens: StateFlow<List<PumpToken>> = combine(
         tokens,
