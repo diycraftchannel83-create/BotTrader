@@ -61,6 +61,10 @@ class MainViewModel(
     val alerts: StateFlow<List<PriceAlert>> = repository.alerts
     val botConfig: StateFlow<BotStrategyConfig> = repository.botConfig
     val recentNotification: StateFlow<PriceAlert?> = repository.recentNotification
+    val solPriceUsd: StateFlow<Double> = repository.solPriceUsd
+    val marketFeedStatus: StateFlow<com.example.data.repository.MarketFeedStatus> = repository.marketFeedStatus
+    val lastMarketUpdate: StateFlow<Long?> = repository.lastMarketUpdate
+    val marketError: StateFlow<String?> = repository.marketError
 
     val filteredTokens: StateFlow<List<PumpToken>> = combine(
         tokens,
@@ -80,14 +84,14 @@ class MainViewModel(
             TokenFilter.DEX_PAID -> list.filter { it.dexPaidStatus == DexPaidStatus.CONFIRMED }
             TokenFilter.BONDING -> list.filter { it.stage == TokenLaunchStage.BONDING }
             TokenFilter.GRADUATED -> list.filter { it.stage == TokenLaunchStage.GRADUATED }
-            TokenFilter.SAFE_ONLY -> list.filter { it.rugAnalysis.safetyScore >= 80 }
-            TokenFilter.TOP_GAINERS -> list.filter { it.change1m > 0 || it.change5m > 0 }.sortedByDescending { it.change1m }
+            TokenFilter.SAFE_ONLY -> list.filter { it.rugAnalysis.isVerified && it.rugAnalysis.safetyScore >= 80 }
+            TokenFilter.TOP_GAINERS -> list.filter { it.change5m > 0 }.sortedByDescending { it.change5m }
         }
 
         when (sort) {
             TokenSort.NEWEST -> list.sortedByDescending { it.createdAt }
             TokenSort.BONDING_PROGRESS -> list.sortedByDescending { it.bondingCurveProgress }
-            TokenSort.PRICE_GAIN -> list.sortedByDescending { it.change1m }
+            TokenSort.PRICE_GAIN -> list.sortedByDescending { it.change5m }
             TokenSort.MARKET_CAP -> list.sortedByDescending { it.marketCapUsd }
             TokenSort.SAFETY_SCORE -> list.sortedByDescending { it.rugAnalysis.safetyScore }
         }
@@ -102,8 +106,9 @@ class MainViewModel(
         walletSolBalance,
         holdings,
         transactions,
-        tokens
-    ) { walletSol, holdingList, txList, tokenList ->
+        tokens,
+        solPriceUsd
+    ) { walletSol, holdingList, txList, tokenList, currentSolPriceUsd ->
         var holdingsValueSol = 0.0
         var totalInvestedSol = 0.0
 
@@ -115,7 +120,7 @@ class MainViewModel(
         }
 
         val totalPortfolioSol = walletSol + holdingsValueSol
-        val totalPortfolioUsd = totalPortfolioSol * repository.solPriceUsd
+        val totalPortfolioUsd = totalPortfolioSol * currentSolPriceUsd
         val unrealizedPnlSol = holdingsValueSol - totalInvestedSol
         val unrealizedPnlPct = if (totalInvestedSol > 0) (unrealizedPnlSol / totalInvestedSol) * 100.0 else 0.0
 
@@ -139,7 +144,7 @@ class MainViewModel(
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
-        PortfolioSummary(5.0, 5.0 * 185.5, 0.0, 0.0, 0.0, 0.0, 0, 0, 0.0)
+        PortfolioSummary(5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0.0)
     )
 
     fun setSearchQuery(query: String) {
@@ -196,8 +201,12 @@ class MainViewModel(
         repository.clearRecentNotification()
     }
 
+    fun refreshMarketData() {
+        repository.refreshMarketData()
+    }
+
     fun triggerNewTokenLaunch() {
-        repository.simulateNewTokenLaunch()
+        refreshMarketData()
     }
 
     fun resetWallet() {
