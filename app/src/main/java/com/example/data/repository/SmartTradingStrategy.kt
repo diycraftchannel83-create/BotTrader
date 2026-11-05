@@ -33,24 +33,32 @@ object SmartTradingStrategy {
         val volume = token.volume24hUsd.coerceAtLeast(0.0)
         val marketCap = token.marketCapUsd.coerceAtLeast(0.0)
 
-        val liquidityScore = (ln(1.0 + liquidity / 1_000.0) / ln(1.0 + 100.0)).coerceIn(0.0, 1.0) * 25.0
-        val volumeScore = (ln(1.0 + volume / 1_000.0) / ln(1.0 + 100.0)).coerceIn(0.0, 1.0) * 20.0
-        val momentumScore = (token.change5m.coerceIn(0.0, 20.0) / 20.0) * 12.0 +
-            (token.change1h.coerceIn(0.0, 50.0) / 50.0) * 8.0
-        val ageScore = when {
-            ageHours <= 1.0 -> 15.0
-            ageHours <= 6.0 -> 13.0
-            ageHours <= 24.0 -> 10.0
-            ageHours <= config.maxTokenAgeHours -> 6.0
+        // Normalize each factor to 0..1, then apply editable relative weights.
+        val liquidityFactor = (ln(1.0 + liquidity / 1_000.0) / ln(1.0 + 100.0)).coerceIn(0.0, 1.0)
+        val volumeFactor = (ln(1.0 + volume / 1_000.0) / ln(1.0 + 100.0)).coerceIn(0.0, 1.0)
+        val momentumFactor = ((token.change5m.coerceIn(0.0, 20.0) / 20.0) * 0.60 +
+            (token.change1h.coerceIn(0.0, 50.0) / 50.0) * 0.40).coerceIn(0.0, 1.0)
+        val ageFactor = when {
+            ageHours <= 1.0 -> 1.0
+            ageHours <= 6.0 -> 0.867
+            ageHours <= 24.0 -> 0.667
+            ageHours <= config.maxTokenAgeHours -> 0.40
             else -> 0.0
         }
-        val capScore = when {
-            marketCap in config.minMarketCapUsd..250_000.0 -> 10.0
-            marketCap in 250_000.01..config.maxMarketCapUsd -> 6.0
+        val capFactor = when {
+            marketCap in config.minMarketCapUsd..250_000.0 -> 1.0
+            marketCap > 250_000.0 && marketCap <= config.maxMarketCapUsd -> 0.60
             else -> 0.0
         }
-        val trendScore = if (token.change5m > 0.0 && token.change1h > 0.0) 10.0 else 0.0
-        val score = (liquidityScore + volumeScore + momentumScore + ageScore + capScore + trendScore).toInt().coerceIn(0, 100)
+        val trendFactor = if (token.change5m > 0.0 && token.change1h > 0.0) 1.0 else 0.0
+        val weights = listOf(config.scoreLiquidityWeight, config.scoreVolumeWeight,
+            config.scoreMomentumWeight, config.scoreAgeWeight, config.scoreMarketCapWeight,
+            config.scoreTrendWeight).map { it.coerceIn(0, 100) }
+        val totalWeight = weights.sum()
+        val weightedScore = liquidityFactor * weights[0] + volumeFactor * weights[1] +
+            momentumFactor * weights[2] + ageFactor * weights[3] + capFactor * weights[4] +
+            trendFactor * weights[5]
+        val score = if (totalWeight > 0) (weightedScore / totalWeight * 100.0).toInt().coerceIn(0, 100) else 0
 
         if (liquidity < config.minLiquidityUsd) blockers += "Liquidity below minimum" else reasons += "Liquidity meets minimum"
         if (volume < config.minVolume24hUsd) blockers += "24h volume below minimum" else reasons += "24h volume meets minimum"
