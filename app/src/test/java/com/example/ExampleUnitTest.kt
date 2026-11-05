@@ -90,42 +90,33 @@ class ExampleUnitTest {
     }
 
     @Test
-    fun testSolanaPrivateKeyValidationAndDerivation() {
-        // Sample Base58 key
+    fun fakeWalletDerivationIsExplicitlyDisabled() {
         val sampleKey = "5MaiiCavjCmn9Hs1o3eznqDE2BEWQ52jA6hac2MDB98DzpHzPQGybJBcZcaqPMNzoyG2g"
         assertTrue(com.example.util.SolanaKeyUtils.isValidPrivateKey(sampleKey))
-
-        val derivedAddress = com.example.util.SolanaKeyUtils.deriveSolanaAddress(sampleKey)
-        assertEquals(44, derivedAddress.length)
-        assertTrue(com.example.util.SolanaKeyUtils.isValidSolanaAddress(derivedAddress))
-
-        // Sample Byte Array key
-        val byteArrKey = "[142, 23, 51, 88, 99, 12, 45, 67, 89, 120, 200, 250, 11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 222, 133, 144, 155, 166, 177, 188, 199, 210, 230]"
-        assertTrue(com.example.util.SolanaKeyUtils.isValidPrivateKey(byteArrKey))
+        try {
+            com.example.util.SolanaKeyUtils.deriveSolanaAddress(sampleKey)
+            fail("Hash-based public-key derivation must not be used")
+        } catch (_: UnsupportedOperationException) {
+            // Expected until audited Ed25519 derivation is integrated.
+        }
     }
 
     @Test
-    fun testWithdrawalExecutionInRepository() {
-        val repo = com.example.data.repository.PumpFunRepository()
-        val initialBalance = repo.walletSolBalance.value
-
-        val destination = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
-        val withdrawAmt = 1.5
-
-        val result = repo.withdrawSol(destination, withdrawAmt)
-        assertTrue(result.isSuccess)
-        val tx = result.getOrNull()
-        assertNotNull(tx)
-        assertEquals("WITHDRAW", tx?.type)
-        assertEquals(withdrawAmt, tx?.amountSol ?: 0.0, 0.0001)
-        assertEquals(destination, tx?.recipientAddress)
-
-        // Balance should decrease by 1.5 + fee (0.000005)
-        val expectedBalance = initialBalance - (withdrawAmt + 0.000005)
-        assertEquals(expectedBalance, repo.walletSolBalance.value, 0.0001)
-
-        // Attempting to withdraw more than available balance should fail
-        val excessiveResult = repo.withdrawSol(destination, 999.0)
-        assertTrue(excessiveResult.isFailure)
+    fun fakeTransactionSignaturesAreDisabled() {
+        try {
+            com.example.util.SolanaKeyUtils.generateTxSignature()
+            fail("A random string must never be represented as a Solana signature")
+        } catch (_: UnsupportedOperationException) {
+            // Expected: no signing implementation is connected.
+        }
     }
+
+    @Test
+    fun paperWalletCannotImportKeysOrWithdraw() {
+        val repo = com.example.data.repository.PumpFunRepository()
+        assertTrue(repo.importPrivateKey("not-a-real-key").isFailure)
+        assertTrue(repo.withdrawSol("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", 1.0).isFailure)
+        assertEquals(5.0, repo.walletSolBalance.value, 0.0001)
+    }
+
 }
