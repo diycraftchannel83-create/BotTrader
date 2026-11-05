@@ -208,8 +208,8 @@ fun RugCheckCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DangerRedBg, RoundedCornerShape(10.dp))
-                        .border(1.dp, DangerRed.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .background(if (rugAnalysis.isVerified) DangerRedBg else WarningAmber.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                        .border(1.dp, (if (rugAnalysis.isVerified) DangerRed else WarningAmber).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -224,8 +224,8 @@ fun RugCheckCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Security Warnings Detected:",
-                            color = DangerRed,
+                            text = if (rugAnalysis.isVerified) "Security Warnings Detected:" else "Security Checks Not Verified:",
+                            color = if (rugAnalysis.isVerified) DangerRed else WarningAmber,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
