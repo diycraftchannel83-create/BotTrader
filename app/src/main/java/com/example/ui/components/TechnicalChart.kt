@@ -43,20 +43,22 @@ fun TechnicalChart(
     var selectedChartType by remember { mutableStateOf(ChartType.CANDLESTICK) }
     var selectedTimeframe by remember { mutableStateOf(ChartTimeframe.TF_1M) }
 
-    // Calculate basic RSI simulation from candles
-    val rsiValue = remember(candles, currentPriceSol) {
-        if (candles.size < 6) 52.0
-        else {
-            var gains = 0.0
-            var losses = 0.0
-            for (i in 1 until candles.size.coerceAtMost(14)) {
-                val diff = candles[i].close - candles[i - 1].close
-                if (diff >= 0) gains += diff else losses += -diff
-            }
-            if (losses == 0.0) 85.0
-            else {
-                val rs = (gains / 14) / (losses / 14)
-                100.0 - (100.0 / (1.0 + rs))
+    // Indicators are calculated only when actual OHLC candles are available.
+    val ma7 = remember(candles) {
+        candles.takeLast(7).takeIf { it.size == 7 }?.map { it.close }?.average()
+    }
+    val ma25 = remember(candles) {
+        candles.takeLast(25).takeIf { it.size == 25 }?.map { it.close }?.average()
+    }
+    val rsiValue = remember(candles) {
+        if (candles.size < 15) null else {
+            val changes = candles.takeLast(15).zipWithNext { a, b -> b.close - a.close }
+            val gains = changes.filter { it > 0.0 }.sumOf { it } / 14.0
+            val losses = changes.filter { it < 0.0 }.sumOf { -it } / 14.0
+            when {
+                losses == 0.0 && gains > 0.0 -> 100.0
+                losses == 0.0 -> 50.0
+                else -> 100.0 - (100.0 / (1.0 + gains / losses))
             }
         }
     }
@@ -149,29 +151,31 @@ fun TechnicalChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "MA(7): ${String.format("%.7f", currentPriceSol * 0.992)}",
+                    text = "MA(7): ${ma7?.let { String.format("%.7f", it) } ?: "—"}",
                     color = DexPaidGold,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "MA(25): ${String.format("%.7f", currentPriceSol * 0.975)}",
+                    text = "MA(25): ${ma25?.let { String.format("%.7f", it) } ?: "—"}",
                     color = NeonCyan,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 val rsiColor = when {
+                    rsiValue == null -> TextMuted
                     rsiValue > 70 -> DangerRed
                     rsiValue < 35 -> NeonGreen
                     else -> TextSecondary
                 }
                 val rsiStatus = when {
+                    rsiValue == null -> "Unavailable"
                     rsiValue > 70 -> "Overbought"
                     rsiValue < 35 -> "Oversold"
                     else -> "Neutral"
                 }
                 Text(
-                    text = "RSI(14): ${String.format("%.1f", rsiValue)} ($rsiStatus)",
+                    text = if (rsiValue == null) "RSI(14): —" else "RSI(14): ${String.format("%.1f", rsiValue)} ($rsiStatus)",
                     color = rsiColor,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
@@ -188,7 +192,7 @@ fun TechnicalChart(
             ) {
                 if (candles.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Loading price candles...", color = TextMuted, fontSize = 12.sp)
+                        Text("Historical OHLC candles are not available from the current market feed.", color = TextMuted, fontSize = 12.sp)
                     }
                 } else {
                     Canvas(
