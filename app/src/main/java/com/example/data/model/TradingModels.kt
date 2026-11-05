@@ -109,6 +109,13 @@ data class BotStrategyConfig(
     val autoSellEnabled: Boolean = true,
     val buyAmountSol: Double = 0.01,
     val minCandidateScore: Int = 75,
+    // Editable relative weights for the candidate score (normalized to 0..100).
+    val scoreLiquidityWeight: Int = 25,
+    val scoreVolumeWeight: Int = 20,
+    val scoreMomentumWeight: Int = 20,
+    val scoreAgeWeight: Int = 15,
+    val scoreMarketCapWeight: Int = 10,
+    val scoreTrendWeight: Int = 10,
     val minLiquidityUsd: Double = 20_000.0,
     val minVolume24hUsd: Double = 50_000.0,
     val minMarketCapUsd: Double = 10_000.0,
