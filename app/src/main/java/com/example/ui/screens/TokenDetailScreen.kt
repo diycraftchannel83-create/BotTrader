@@ -209,15 +209,15 @@ fun TokenDetailScreen(
 
                         // 1m & 5m changes
                         Column(horizontalAlignment = Alignment.End) {
-                            val changeSign = if (token.change1m >= 0) "+" else ""
-                            val changeColor = if (token.change1m >= 0) NeonGreen else DangerRed
+                            val changeSign = if (token.change5m >= 0) "+" else ""
+                            val changeColor = if (token.change5m >= 0) NeonGreen else DangerRed
                             Box(
                                 modifier = Modifier
                                     .background(changeColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "$changeSign${String.format("%.2f", token.change1m)}% (1m)",
+                                    text = "$changeSign${String.format("%.2f", token.change5m)}% (5m)",
                                     color = changeColor,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
