@@ -126,5 +126,10 @@ data class BotStrategyConfig(
     val takeProfitPct: Double = 100.0,
     val stopLossPct: Double = 20.0,
     val trailingStopPctAuto: Double = 15.0,
-    val allowUnverifiedSecurityData: Boolean = false
+    val allowUnverifiedSecurityData: Boolean = false,
+    // Guardrail settings for future live execution. Paper mode cannot prevent on-chain MEV.
+    val antiMevProtectionEnabled: Boolean = true,
+    val maxSlippagePct: Double = 1.0,
+    val maxQuoteAgeMs: Long = 5_000L,
+    val requirePrivateRoutingForLive: Boolean = true
 )
