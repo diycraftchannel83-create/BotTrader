@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.TokenPriceFormatter
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -175,7 +177,7 @@ fun TokenCard(
                 // Price & Change
                 Column {
                     Text(
-                        text = "${String.format("%.7f", token.priceSol)} SOL",
+                        text = "${TokenPriceFormatter.format(token.priceSol)} SOL",
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -185,7 +187,7 @@ fun TokenCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "$${String.format("%.6f", token.priceUsd)}",
+                            text = "$${TokenPriceFormatter.format(token.priceUsd)}",
                             color = TextMuted,
                             fontSize = 11.sp
                         )

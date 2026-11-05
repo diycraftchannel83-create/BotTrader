@@ -1,10 +1,17 @@
 package com.example
 
 import com.example.data.model.*
+import com.example.util.TokenPriceFormatter
 import org.junit.Assert.*
 import org.junit.Test
 
 class ExampleUnitTest {
+    @Test
+    fun tokenPriceFormatterKeepsTenDecimalPlacesForTinyPrices() {
+        assertEquals("0.0000000123", TokenPriceFormatter.format(0.0000000123))
+        assertEquals("1.2345678901", TokenPriceFormatter.format(1.2345678901))
+    }
+
     @Test
     fun testRugPullSafetyScore_SafeToken() {
         val safeAnalysis = RugAnalysis(

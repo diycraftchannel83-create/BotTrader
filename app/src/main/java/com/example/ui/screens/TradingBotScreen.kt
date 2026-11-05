@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.TokenPriceFormatter
+
 import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -382,11 +384,11 @@ private fun LimitOrderItemCard(
             ) {
                 Column {
                     Text("Target Trigger Price", color = TextMuted, fontSize = 10.sp)
-                    Text("${String.format("%.7f", order.targetPriceSol)} SOL", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("${TokenPriceFormatter.format(order.targetPriceSol)} SOL", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Column {
                     Text("Current Price", color = TextMuted, fontSize = 10.sp)
-                    Text("${String.format("%.7f", currentPriceSol)} SOL", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("${TokenPriceFormatter.format(currentPriceSol)} SOL", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Distance", color = TextMuted, fontSize = 10.sp)
