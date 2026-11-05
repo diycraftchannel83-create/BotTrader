@@ -36,6 +36,15 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun antiMevGuardrailsDefaultToEnabledWithConservativeSlippageAndPrivateRoutingRequired() {
+        val config = BotStrategyConfig()
+        assertTrue(config.antiMevProtectionEnabled)
+        assertEquals(1.0, config.maxSlippagePct, 0.0)
+        assertEquals(5_000L, config.maxQuoteAgeMs)
+        assertTrue(config.requirePrivateRoutingForLive)
+    }
+
+    @Test
     fun tokenPriceFormatterKeepsTenDecimalPlacesForTinyPrices() {
         assertEquals("0.0000000123", TokenPriceFormatter.format(0.0000000123))
         assertEquals("1.2345678901", TokenPriceFormatter.format(1.2345678901))
