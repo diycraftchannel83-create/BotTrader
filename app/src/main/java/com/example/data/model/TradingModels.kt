@@ -93,7 +93,7 @@ data class PriceAlert(
 )
 
 data class BotStrategyConfig(
-    val isMasterEnabled: Boolean = true,
+    val isMasterEnabled: Boolean = false,
     val autoSnipeNewTokens: Boolean = false,
     val minRugScoreForSnipe: Int = 85,
     val maxDevHoldingForSnipe: Double = 5.0,
