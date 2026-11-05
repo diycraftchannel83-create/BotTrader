@@ -434,6 +434,12 @@ private fun BotConfigDialog(
     var allowUnverified by remember { mutableStateOf(currentConfig.allowUnverifiedSecurityData) }
     var buyAmountText by remember { mutableStateOf(currentConfig.buyAmountSol.toString()) }
     var minScoreText by remember { mutableStateOf(currentConfig.minCandidateScore.toString()) }
+    var liquidityWeightText by remember { mutableStateOf(currentConfig.scoreLiquidityWeight.toString()) }
+    var volumeWeightText by remember { mutableStateOf(currentConfig.scoreVolumeWeight.toString()) }
+    var momentumWeightText by remember { mutableStateOf(currentConfig.scoreMomentumWeight.toString()) }
+    var ageWeightText by remember { mutableStateOf(currentConfig.scoreAgeWeight.toString()) }
+    var marketCapWeightText by remember { mutableStateOf(currentConfig.scoreMarketCapWeight.toString()) }
+    var trendWeightText by remember { mutableStateOf(currentConfig.scoreTrendWeight.toString()) }
     var minLiquidityText by remember { mutableStateOf(currentConfig.minLiquidityUsd.toString()) }
     var maxPositionsText by remember { mutableStateOf(currentConfig.maxOpenPositions.toString()) }
     var dailyLossText by remember { mutableStateOf(currentConfig.maxDailyLossSol.toString()) }
@@ -474,6 +480,22 @@ private fun BotConfigDialog(
                     OutlinedTextField(value = minScoreText, onValueChange = { minScoreText = it }, label = { Text("Min score (0-100)") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(value = maxPositionsText, onValueChange = { maxPositionsText = it }, label = { Text("Max positions") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
+
+                Text("EDIT SCORING FORMULA", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Set the relative importance of each factor. Weights are normalized automatically; they do not need to add up to 100. At least one weight must be above zero.", color = TextMuted, fontSize = 10.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = liquidityWeightText, onValueChange = { liquidityWeightText = it }, label = { Text("Liquidity weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = volumeWeightText, onValueChange = { volumeWeightText = it }, label = { Text("Volume weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = momentumWeightText, onValueChange = { momentumWeightText = it }, label = { Text("Momentum weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = ageWeightText, onValueChange = { ageWeightText = it }, label = { Text("Token age weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = marketCapWeightText, onValueChange = { marketCapWeightText = it }, label = { Text("Market cap weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = trendWeightText, onValueChange = { trendWeightText = it }, label = { Text("Trend weight") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
+
                 OutlinedTextField(value = minLiquidityText, onValueChange = { minLiquidityText = it }, label = { Text("Minimum liquidity (USD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = dailyLossText, onValueChange = { dailyLossText = it }, label = { Text("Daily loss cap (SOL)") }, singleLine = true, modifier = Modifier.weight(1f))
@@ -508,6 +530,12 @@ private fun BotConfigDialog(
                         allowUnverifiedSecurityData = allowUnverified,
                         buyAmountSol = buyAmountText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.buyAmountSol,
                         minCandidateScore = minScoreText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.minCandidateScore,
+                        scoreLiquidityWeight = liquidityWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreLiquidityWeight,
+                        scoreVolumeWeight = volumeWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreVolumeWeight,
+                        scoreMomentumWeight = momentumWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreMomentumWeight,
+                        scoreAgeWeight = ageWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreAgeWeight,
+                        scoreMarketCapWeight = marketCapWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreMarketCapWeight,
+                        scoreTrendWeight = trendWeightText.toIntOrNull()?.coerceIn(0, 100) ?: currentConfig.scoreTrendWeight,
                         minLiquidityUsd = minLiquidityText.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: currentConfig.minLiquidityUsd,
                         maxOpenPositions = maxPositionsText.toIntOrNull()?.coerceIn(1, 20) ?: currentConfig.maxOpenPositions,
                         maxDailyLossSol = dailyLossText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: currentConfig.maxDailyLossSol,
