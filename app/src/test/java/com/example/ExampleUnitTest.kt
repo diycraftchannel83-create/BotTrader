@@ -22,6 +22,23 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun unverifiedMarketDataMustNotReceiveASafetyScore() {
+        val unverified = RugAnalysis(
+            devHoldingPct = 0.0,
+            top10HoldersPct = 0.0,
+            isMintRenounced = false,
+            isFreezeDisabled = false,
+            isLpBurned = false,
+            honeypotRisk = false,
+            bundledSnipersCount = 0,
+            warnings = listOf("Security data not verified"),
+            isVerified = false
+        )
+
+        assertEquals(0, unverified.safetyScore)
+        assertEquals(RiskLevel.UNKNOWN, unverified.riskLevel)
+    }
+    @Test
     fun testRugPullSafetyScore_DangerousToken() {
         val dangerousAnalysis = RugAnalysis(
             devHoldingPct = 35.0,
@@ -113,7 +130,7 @@ class ExampleUnitTest {
 
     @Test
     fun paperWalletCannotImportKeysOrWithdraw() {
-        val repo = com.example.data.repository.PumpFunRepository()
+        val repo = com.example.data.repository.PumpFunRepository(autoStartMarketFeed = false)
         assertTrue(repo.importPrivateKey("not-a-real-key").isFailure)
         assertTrue(repo.withdrawSol("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", 1.0).isFailure)
         assertEquals(5.0, repo.walletSolBalance.value, 0.0001)

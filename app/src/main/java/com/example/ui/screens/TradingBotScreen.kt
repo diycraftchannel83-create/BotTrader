@@ -139,7 +139,7 @@ fun TradingBotScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Simulated market only • No live blockchain orders",
+                                        text = "Live DEX market data • Paper orders only",
                                         color = TextSecondary,
                                         fontSize = 11.sp
                                     )
