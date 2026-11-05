@@ -167,7 +167,8 @@ class PumpFunRepository(
             stage = TokenLaunchStage.DEX_LISTED,
             bondingCurveKnown = false,
             imageUrl = iconUrl,
-            pairUrl = pairUrl
+            pairUrl = pairUrl,
+            liquidityUsd = liquidityUsd
         )
     }
 
