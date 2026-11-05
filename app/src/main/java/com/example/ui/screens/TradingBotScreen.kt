@@ -133,13 +133,13 @@ fun TradingBotScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = if (botConfig.isMasterEnabled) "Bot Engine: RUNNING" else "Bot Engine: PAUSED",
+                                        text = if (botConfig.isMasterEnabled) "Paper Engine: RUNNING" else "Paper Engine: PAUSED",
                                         color = if (botConfig.isMasterEnabled) NeonPurple else TextMuted,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = if (botConfig.isMasterEnabled) "Actively evaluating pump.fun ticks" else "All limit orders on hold",
+                                        text = "Simulated market only • No live blockchain orders",
                                         color = TextSecondary,
                                         fontSize = 11.sp
                                     )
