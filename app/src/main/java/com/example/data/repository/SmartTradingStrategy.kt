@@ -22,7 +22,7 @@ data class AutoExitDecision(
 
 /**
  * Deterministic screening and exit rules. A high score is a ranking heuristic,
- * not a forecast and never a promise of 500x returns.
+ * not a forecast and never a promise of 30x returns.
  */
 object SmartTradingStrategy {
     fun assess(token: PumpToken, config: com.example.data.model.BotStrategyConfig, nowMs: Long = System.currentTimeMillis()): CandidateAssessment {

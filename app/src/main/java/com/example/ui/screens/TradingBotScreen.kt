@@ -203,7 +203,7 @@ fun TradingBotScreen(
                         Text("SMART SCANNER", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text(autoTradeStatus, color = TextSecondary, fontSize = 11.sp)
                         Text("0.01 SOL per entry • Max ${botConfig.maxOpenPositions} positions • Daily loss cap ${botConfig.maxDailyLossSol} SOL", color = TextMuted, fontSize = 10.sp)
-                        Text("500x is not predictable. Scores rank market conditions and do not forecast returns.", color = WarningAmber, fontSize = 10.sp)
+                        Text("30x is an aspirational target, not a prediction. Scores rank market conditions and cannot guarantee returns.", color = WarningAmber, fontSize = 10.sp)
                         candidateAssessments.take(5).forEach { candidate ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
@@ -431,6 +431,7 @@ private fun BotConfigDialog(
     onDismiss: () -> Unit,
     onSave: (BotStrategyConfig) -> Unit
 ) {
+    val context = LocalContext.current
     var autoBuy by remember { mutableStateOf(currentConfig.autoBuyEnabled) }
     var autoSell by remember { mutableStateOf(currentConfig.autoSellEnabled) }
     var allowUnverified by remember { mutableStateOf(currentConfig.allowUnverifiedSecurityData) }
