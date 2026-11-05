@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.DexPaidStatus
 import com.example.data.model.PumpToken
+import com.example.data.repository.MarketFeedStatus
 import com.example.ui.MainViewModel
 import com.example.ui.TokenFilter
 import com.example.ui.TokenSort
@@ -47,6 +48,9 @@ fun RadarScreen(
     val botConfig by viewModel.botConfig.collectAsState()
     val currentWallet by viewModel.currentWallet.collectAsState()
     val walletSol by viewModel.walletSolBalance.collectAsState()
+    val solPriceUsd by viewModel.solPriceUsd.collectAsState()
+    val marketFeedStatus by viewModel.marketFeedStatus.collectAsState()
+    val marketError by viewModel.marketError.collectAsState()
 
     // Pulsing live indicator
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -65,12 +69,12 @@ fun RadarScreen(
         containerColor = CyberBlack,
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.triggerNewTokenLaunch() },
+                onClick = { viewModel.refreshMarketData() },
                 containerColor = NeonGreen,
                 contentColor = CyberBlack,
-                icon = { Icon(Icons.Default.Add, contentDescription = "Simulate New Launch") },
-                text = { Text("Simulate Launch", fontWeight = FontWeight.Bold) },
-                modifier = Modifier.testTag("simulate_launch_fab")
+                icon = { Icon(Icons.Default.Refresh, contentDescription = "Refresh market data") },
+                text = { Text("Refresh Market", fontWeight = FontWeight.Bold) },
+                modifier = Modifier.testTag("market_refresh_button")
             )
         }
     ) { innerPadding ->
@@ -95,10 +99,10 @@ fun RadarScreen(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(NeonGreen.copy(alpha = pulseAlpha))
+                            .background((when (marketFeedStatus) { MarketFeedStatus.LIVE -> NeonGreen; MarketFeedStatus.CONNECTING -> NeonCyan; MarketFeedStatus.STALE, MarketFeedStatus.ERROR -> WarningAmber }).copy(alpha = pulseAlpha))
                     )
                     Text(
-                        text = "PUMP.FUN RADAR",
+                        text = "SOLANA MARKET RADAR",
                         color = TextPrimary,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -202,9 +206,34 @@ fun RadarScreen(
                 )
                 StatPill(
                     label = "SOL Price",
-                    value = "$185.50",
+                    value = if (solPriceUsd > 0.0) "${String.format("%.2f", solPriceUsd)}" else "—",
                     color = NeonGreen,
                     modifier = Modifier.weight(1f)
+                )
+            }
+
+            Text(
+                text = when (marketFeedStatus) {
+                    MarketFeedStatus.CONNECTING -> "DEXSCREENER • CONNECTING"
+                    MarketFeedStatus.LIVE -> "DEXSCREENER • LIVE MARKET DATA"
+                    MarketFeedStatus.STALE -> "DEXSCREENER • STALE DATA"
+                    MarketFeedStatus.ERROR -> "DEXSCREENER • DATA UNAVAILABLE"
+                },
+                color = when (marketFeedStatus) {
+                    MarketFeedStatus.LIVE -> NeonGreen
+                    MarketFeedStatus.CONNECTING -> NeonCyan
+                    MarketFeedStatus.STALE, MarketFeedStatus.ERROR -> WarningAmber
+                },
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)
+            )
+            if (!marketError.isNullOrBlank() && marketFeedStatus != MarketFeedStatus.LIVE) {
+                Text(
+                    text = marketError.orEmpty(),
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(horizontal = 18.dp)
                 )
             }
 
@@ -310,7 +339,7 @@ fun RadarScreen(
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("No tokens match your search filter", color = TextSecondary, fontSize = 14.sp)
+                        Text(if (marketFeedStatus == MarketFeedStatus.CONNECTING) "Loading live Solana pairs..." else if (marketFeedStatus == MarketFeedStatus.ERROR) "Market data is unavailable. Tap Refresh Market to retry." else "No tokens match your search filter", color = TextSecondary, fontSize = 14.sp)
                     }
                 }
             } else {
