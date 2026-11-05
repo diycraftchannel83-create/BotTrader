@@ -12,6 +12,7 @@ enum class TokenFilter {
     DEX_PAID,
     BONDING,
     GRADUATED,
+    DEX_LISTED,
     SAFE_ONLY,
     TOP_GAINERS
 }
@@ -84,6 +85,7 @@ class MainViewModel(
             TokenFilter.DEX_PAID -> list.filter { it.dexPaidStatus == DexPaidStatus.CONFIRMED }
             TokenFilter.BONDING -> list.filter { it.stage == TokenLaunchStage.BONDING }
             TokenFilter.GRADUATED -> list.filter { it.stage == TokenLaunchStage.GRADUATED }
+            TokenFilter.DEX_LISTED -> list.filter { it.stage == TokenLaunchStage.DEX_LISTED }
             TokenFilter.SAFE_ONLY -> list.filter { it.rugAnalysis.isVerified && it.rugAnalysis.safetyScore >= 80 }
             TokenFilter.TOP_GAINERS -> list.filter { it.change5m > 0 }.sortedByDescending { it.change5m }
         }
