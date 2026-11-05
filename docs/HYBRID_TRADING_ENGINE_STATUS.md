@@ -4,7 +4,7 @@
 
 This branch is a **paper-trading-only foundation**. It does not connect to Solana RPC, derive real wallet addresses, sign transactions, submit swaps, or send withdrawals.
 
-The existing market feed and sample tokens are generated locally for UI/demo purposes. They must not be described as live market data, and their safety scores are not evidence of on-chain token safety.
+The market feed now reads public Solana DEX pair data from DexScreener. Prices, 5-minute/1-hour changes, market cap, 24-hour volume, liquidity, pair creation time and available social links come from the API. Trading remains local paper simulation only. Holder counts, bonding-curve progress, OHLC history, token authorities, holder concentration, LP lock and honeypot checks are not inferred from DEX pair data.
 
 ## Phase 0 — Security and core refactoring
 
@@ -15,8 +15,23 @@ The existing market feed and sample tokens are generated locally for UI/demo pur
 - [x] Default the bot master switch to OFF.
 - [x] Label the bot status as paper engine and disclose simulated market data.
 - [x] Replace tests that previously treated fake derivation/withdrawals as successful.
-- [ ] Run CI and resolve any build/test failures.
+- [x] Run unit tests and build the debug APK in GitHub Actions on main (2026-11-05).
 
+## Phase 1 — Live market data foundation
+
+- [x] Add a read-only DexScreener data source for latest Solana token profiles and pair snapshots.
+- [x] Resolve the wrapped-SOL/USDC or wrapped-SOL/USDT pair for a live SOL/USD reference price.
+- [x] Map actual mint addresses, pair prices, 5m/1h changes, market cap/FDV, 24h volume, liquidity, pair creation time and available social links.
+- [x] Refresh market snapshots every 30 seconds and expose LIVE, STALE, ERROR and CONNECTING states.
+- [x] Preserve the last good snapshot if a refresh fails.
+- [x] Remove random price ticks and fabricated seed tokens/candles from the active market feed.
+- [x] Mark missing security/bonding-curve fields as unverified instead of manufacturing a score or progress value.
+- [x] Keep paper trading isolated; no wallet signing, RPC swap submission or withdrawal is enabled.
+- [ ] Validate the Phase 1 branch with GitHub Actions and verify the live API response on a device.
+
+### Phase 1 data limitations
+
+DexScreener is a market/pair data source, not a token security oracle. The current adapter does not claim to verify mint/freeze authorities, holder concentration, LP locks, honeypot behavior, Pump.fun bonding progress, holder counts or historical OHLC candles. Unverified security checks display N/A; the app must not classify these tokens as safe based on missing data.
 ## Required architecture before live trading
 
 1. **Market data adapters** — real Solana RPC/WebSocket plus verified token and pool data. Mock data must remain isolated.
