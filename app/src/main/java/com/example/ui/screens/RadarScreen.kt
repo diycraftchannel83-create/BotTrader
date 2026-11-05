@@ -206,7 +206,7 @@ fun RadarScreen(
                 )
                 StatPill(
                     label = "SOL Price",
-                    value = if (solPriceUsd > 0.0) "${String.format("%.2f", solPriceUsd)}" else "—",
+                    value = if (solPriceUsd > 0.0) "\\${String.format("%.2f", solPriceUsd)}" else "—",
                     color = NeonGreen,
                     modifier = Modifier.weight(1f)
                 )
