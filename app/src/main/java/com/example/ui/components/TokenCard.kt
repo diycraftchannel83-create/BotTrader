@@ -338,7 +338,7 @@ fun TokenCard(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Snipe", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Paper Buy", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
