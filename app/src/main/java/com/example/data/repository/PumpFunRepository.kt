@@ -133,11 +133,6 @@ class PumpFunRepository(
             .sortedByDescending { it.score }
         _candidateAssessments.value = assessments
 
-        val dayStart = Instant.now().atZone(ZoneOffset.UTC).toLocalDate()
-            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        val realizedToday = _transactions.value
-            .filter { it.type == "SELL" && it.timestamp >= dayStart }
-            .sumOf { it.realizedPnlSol ?: 0.0 }
 
         if (!config.isMasterEnabled) {
             _autoTradeStatus.value = "Paper engine paused"
@@ -176,6 +171,11 @@ class PumpFunRepository(
             }
         }
 
+        val dayStart = Instant.now().atZone(ZoneOffset.UTC).toLocalDate()
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val realizedToday = _transactions.value
+            .filter { it.type == "SELL" && it.timestamp >= dayStart }
+            .sumOf { it.realizedPnlSol ?: 0.0 }
         if (realizedToday <= -config.maxDailyLossSol) {
             _autoTradeStatus.value = "Daily loss limit reached; new buys blocked"
             return
