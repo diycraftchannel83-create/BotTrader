@@ -16,7 +16,8 @@ enum class MarketFeedStatus { CONNECTING, LIVE, STALE, ERROR }
 
 class PumpFunRepository(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
-    private val marketDataSource: DexScreenerDataSource = DexScreenerDataSource()
+    private val marketDataSource: DexScreenerDataSource = DexScreenerDataSource(),
+    private val autoStartMarketFeed: Boolean = true
 ) {
     private val _solPriceUsd = MutableStateFlow(0.0)
     val solPriceUsd: StateFlow<Double> = _solPriceUsd.asStateFlow()
@@ -63,8 +64,10 @@ class PumpFunRepository(
     val recentNotification: StateFlow<PriceAlert?> = _recentNotification.asStateFlow()
 
     init {
-        refreshMarketData()
-        startMarketRefreshLoop()
+        if (autoStartMarketFeed) {
+            refreshMarketData()
+            startMarketRefreshLoop()
+        }
     }
 
     fun clearRecentNotification() {
