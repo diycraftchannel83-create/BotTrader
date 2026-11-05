@@ -47,7 +47,7 @@ class DexScreenerDataSource(
         .callTimeout(22, TimeUnit.SECONDS)
         .build()
 ) {
-    suspend fun fetchLatestSolanaMarket(): DexScreenerMarketSnapshot = withContext(Dispatchers.IO) {
+    internal suspend fun fetchLatestSolanaMarket(): DexScreenerMarketSnapshot = withContext(Dispatchers.IO) {
         val profiles = getJsonArray("https://api.dexscreener.com/token-profiles/latest/v1")
         val profileByAddress = linkedMapOf<String, JSONObject>()
         for (index in 0 until profiles.length()) {
