@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.util.TokenPriceFormatter
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -151,13 +153,13 @@ fun TechnicalChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "MA(7): ${ma7?.let { String.format("%.7f", it) } ?: "—"}",
+                    text = "MA(7): ${ma7?.let { TokenPriceFormatter.format(it) } ?: "—"}",
                     color = DexPaidGold,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "MA(25): ${ma25?.let { String.format("%.7f", it) } ?: "—"}",
+                    text = "MA(25): ${ma25?.let { TokenPriceFormatter.format(it) } ?: "—"}",
                     color = NeonCyan,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
@@ -325,18 +327,18 @@ fun TechnicalChart(
                 val minPrice = candles.minOfOrNull { it.low } ?: currentPriceSol
                 val maxPrice = candles.maxOfOrNull { it.high } ?: currentPriceSol
                 Text(
-                    text = "24h Low: ${String.format("%.7f", minPrice)} SOL",
+                    text = "24h Low: ${TokenPriceFormatter.format(minPrice)} SOL",
                     color = TextMuted,
                     fontSize = 10.sp
                 )
                 Text(
-                    text = "Live: ${String.format("%.7f", currentPriceSol)} SOL",
+                    text = "Live: ${TokenPriceFormatter.format(currentPriceSol)} SOL",
                     color = NeonCyan,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "24h High: ${String.format("%.7f", maxPrice)} SOL",
+                    text = "24h High: ${TokenPriceFormatter.format(maxPrice)} SOL",
                     color = TextMuted,
                     fontSize = 10.sp
                 )
