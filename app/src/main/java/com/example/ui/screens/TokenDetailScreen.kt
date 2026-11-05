@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.util.TokenPriceFormatter
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -194,13 +196,13 @@ fun TokenDetailScreen(
                         Column {
                             Text("Current Price", color = TextMuted, fontSize = 11.sp)
                             Text(
-                                text = "${String.format("%.7f", token.priceSol)} SOL",
+                                text = "${TokenPriceFormatter.format(token.priceSol)} SOL",
                                 color = TextPrimary,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
-                                text = "$${String.format("%.6f", token.priceUsd)}",
+                                text = "$${TokenPriceFormatter.format(token.priceUsd)}",
                                 color = NeonCyan,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
