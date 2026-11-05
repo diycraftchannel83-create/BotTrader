@@ -19,7 +19,7 @@ class ExampleUnitTest {
             dexPaidStatus = DexPaidStatus.PENDING, dexPaidTime = null,
             rugAnalysis = RugAnalysis(0.0, 0.0, false, false, false, false, 0, emptyList()),
             candles = emptyList(), stage = TokenLaunchStage.DEX_LISTED,
-            bondingCurveKnown = false, liquidityUsd = 100_000.0
+            bondingCurveKnown = false, liquidityUsd = 20_000.0
         )
         val liquidityOnly = BotStrategyConfig(
             scoreLiquidityWeight = 100, scoreVolumeWeight = 0, scoreMomentumWeight = 0,
